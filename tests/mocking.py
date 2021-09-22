@@ -6,7 +6,20 @@ from typing import Any, Union
 import datetime as dt
 import random
 
-_MOCK_STRINGS = None
+
+_MOCK_STRINGS = [
+    "alpha",
+    "beta",
+    "gamma" "delta",
+    "epsilon",
+    "zeta",
+    "eta",
+    "theta",
+    "kappa",
+    "lambda",
+    "mu",
+    "nu",
+]
 
 
 def is_optional_type(_type: type) -> bool:
@@ -22,8 +35,6 @@ def strip_option(_type: type) -> type:
 
 
 def mock(_type: type) -> Any:
-    global _MOCK_STRINGS
-
     if is_optional_type(_type):
         _type = strip_option(_type)
 
@@ -45,9 +56,6 @@ def mock(_type: type) -> Any:
         )
 
     elif _type == str:
-        if not _MOCK_STRINGS:
-            _MOCK_STRINGS = [word.strip() for word in open("/usr/share/dict/words")]
-
         # some strings in the frictionless standard must be lowercase with no spaces
         return random.choice(_MOCK_STRINGS).lower()
 
