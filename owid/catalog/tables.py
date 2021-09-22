@@ -126,6 +126,12 @@ class Table(pd.DataFrame):
             and self.to_dict() == rhs.to_dict()
         )
 
+    @property
+    def all_columns(self) -> List[str]:
+        "Return names of all columns in the dataset, including the index."
+        combined: List[str] = filter(None, list(self.index.names) + list(self.columns))  # type: ignore
+        return combined
+
 
 # dynamically add all metadata properties to the class
 for k in TableMeta.__dataclass_fields__:  # type: ignore
