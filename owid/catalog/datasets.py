@@ -6,7 +6,8 @@ from os.path import join, isdir, exists
 from os import mkdir
 from dataclasses import dataclass
 import shutil
-from typing import Optional
+from typing import Iterator, List, Optional
+from glob import glob
 
 from . import tables
 from .properties import metadata_property
@@ -67,6 +68,18 @@ class Dataset:
 
     def save(self) -> None:
         self.metadata.save(self._index_file)
+
+    def __len__(self) -> int:
+        return len(self._data_files)
+
+    def __iter__(self) -> Iterator[tables.Table]:
+        for filename in self._data_files:
+            yield tables.Table.read_feather(filename)
+
+    @property
+    def _data_files(self) -> List[str]:
+        pattern = join(self.path, "*.feather")
+        return glob(pattern)
 
 
 for k in DatasetMeta.__dataclass_fields__:  # type: ignore

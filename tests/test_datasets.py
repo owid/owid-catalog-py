@@ -9,6 +9,8 @@ import json
 import shutil
 from contextlib import contextmanager
 from typing import Iterator
+import random
+from glob import glob
 
 import pytest
 
@@ -94,9 +96,35 @@ def test_metadata_roundtrip():
         assert d2.metadata == d.metadata
 
 
+def test_dataset_size():
+    with mock_dataset() as d:
+        n_expected = len(glob(join(d.path, "*.feather")))
+        assert len(d) == n_expected
+
+
+def test_dataset_iteration():
+    with mock_dataset() as d:
+        i = 0
+        for table in d:
+            i += 1
+        assert i == len(d)
+
+
 @contextmanager
 def temp_dataset_dir(create: bool = False) -> Iterator[str]:
     with tempfile.TemporaryDirectory() as dirname:
         if not create:
             rmdir(dirname)
         yield dirname
+
+
+@contextmanager
+def mock_dataset() -> Iterator[Dataset]:
+    with temp_dataset_dir() as dirname:
+        d = Dataset.create_empty(dirname)
+        d.metadata = mock(DatasetMeta)
+        for i in range(random.randint(2, 5)):
+            t = mock_table()
+            d.add(t)
+
+        yield d
