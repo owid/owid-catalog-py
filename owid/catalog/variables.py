@@ -29,7 +29,7 @@ class Variable(pd.Series):
         self._fields = _fields or {}
 
         # silence warning
-        if not data and not kwargs.get("dtype"):
+        if data is not None and not kwargs.get("dtype"):
             kwargs["dtype"] = "object"
 
         super().__init__(data=data, index=index, **kwargs)
