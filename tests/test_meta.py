@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 from dataclasses_json import dataclass_json
 
-from owid.formats import meta
+from owid.catalog import meta
 
 
 def test_dict_mixin():

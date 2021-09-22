@@ -8,8 +8,8 @@ from os.path import join, exists, splitext
 import jsonschema
 import pytest
 
-from owid.formats.tables import Table, SCHEMA
-from owid.formats.meta import VariableMeta, TableMeta
+from owid.catalog.tables import Table, SCHEMA
+from owid.catalog.meta import VariableMeta, TableMeta
 from .mocking import mock
 
 

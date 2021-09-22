@@ -12,8 +12,8 @@ from typing import Iterator
 
 import pytest
 
-from owid.formats.datasets import Dataset
-from owid.formats.meta import DatasetMeta
+from owid.catalog.datasets import Dataset
+from owid.catalog.meta import DatasetMeta
 from .test_tables import mock_table
 from .mocking import mock
 
