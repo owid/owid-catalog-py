@@ -2,11 +2,13 @@
 #  test_tables.py
 #
 
+from owid.catalog.variables import Variable
 import tempfile
 from os.path import join, exists, splitext
 
 import jsonschema
 import pytest
+import pandas as pd
 
 from owid.catalog.tables import Table, SCHEMA
 from owid.catalog.meta import VariableMeta, TableMeta
@@ -23,20 +25,20 @@ def test_add_table_metadata():
     t = Table({"gdp": [100, 102, 104], "country": ["AU", "SE", "CH"]})
 
     # write some metadata
-    t.name = "my_table"
-    t.title = "My table indeed"
-    t.description = "## Well...\n\nI discovered this table in the Summer of '63..."
+    t.metadata.name = "my_table"
+    t.metadata.title = "My table indeed"
+    t.metadata.description = (
+        "## Well...\n\nI discovered this table in the Summer of '63..."
+    )
 
     # metadata persists with slicing
     t2 = t.iloc[:2]
-    assert t2.name == t.name
-    assert t2.title == t.title
-    assert t2.description == t.description
+    assert t2.metadata == t.metadata
 
 
 def test_read_empty_table_metadata():
     t = Table()
-    assert t.name is None
+    assert t.metadata == TableMeta()
 
 
 def test_table_schema_is_valid():
@@ -132,6 +134,14 @@ def test_field_metadata_serialised():
 
         t2 = Table.read_feather(filename)
         assert_tables_eq(t1, t2)
+
+
+def test_tables_from_dataframes_have_variable_columns():
+    df = pd.DataFrame({"gdp": [100, 102, 104], "country": ["AU", "SE", "CH"]})
+    t = Table(df)
+    assert isinstance(t.gdp, Variable)
+
+    t.gdp.metadata.title = "test"
 
 
 def assert_tables_eq(lhs: Table, rhs: Table) -> None:

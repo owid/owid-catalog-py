@@ -45,10 +45,10 @@ class Dataset:
 
     def add(self, table: tables.Table) -> None:
         "Add this table to the dataset by saving it in the dataset's folder."
-        if not table.name:
+        if not table.metadata.name:
             raise ValueError("table must be named to be added to a dataset")
 
-        table_filename = join(self.path, table.name + ".feather")
+        table_filename = join(self.path, table.metadata.name + ".feather")
         table.to_feather(table_filename)
 
     def __getitem__(self, name: str) -> tables.Table:
@@ -83,4 +83,7 @@ class Dataset:
 
 
 for k in DatasetMeta.__dataclass_fields__:  # type: ignore
+    if hasattr(Dataset, k):
+        raise Exception(f'metadata field "{k}" would overwrite a Dataset built-in')
+
     setattr(Dataset, k, metadata_property(k))

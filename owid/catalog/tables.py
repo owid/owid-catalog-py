@@ -10,7 +10,6 @@ from collections import defaultdict
 import pandas as pd
 
 from . import variables
-from .properties import metadata_property
 from .meta import VariableMeta, TableMeta
 
 SCHEMA = json.load(open(join(dirname(__file__), "schemas", "table.json")))
@@ -131,11 +130,3 @@ class Table(pd.DataFrame):
         "Return names of all columns in the dataset, including the index."
         combined: List[str] = filter(None, list(self.index.names) + list(self.columns))  # type: ignore
         return combined
-
-
-# dynamically add all metadata properties to the class
-for k in TableMeta.__dataclass_fields__:  # type: ignore
-    if hasattr(Table, k):
-        raise Exception(f'metadata field "{k}" would overwrite a Pandas built-in')
-
-    setattr(Table, k, metadata_property(k))

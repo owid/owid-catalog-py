@@ -72,14 +72,14 @@ def test_add_table():
 
         # check that it's really on disk
         table_files = [
-            join(dirname, t.name + ".feather"),
-            join(dirname, t.name + ".meta.json"),
+            join(dirname, t.metadata.checked_name + ".feather"),
+            join(dirname, t.metadata.checked_name + ".meta.json"),
         ]
         for filename in table_files:
             assert exists(filename)
 
         # load a fresh copy from disk
-        t2 = ds[t.name]
+        t2 = ds[t.metadata.checked_name]
         assert id(t2) != id(t)
 
         # the fresh copy from disk should be identical to the copy we added

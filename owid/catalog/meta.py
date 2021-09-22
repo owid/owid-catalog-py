@@ -80,6 +80,13 @@ class TableMeta:
     title: Optional[str] = None
     description: Optional[str] = None
 
+    @property
+    def checked_name(self) -> str:
+        if not self.name:
+            raise Exception("table has no name")
+
+        return self.name
+
 
 @pruned_json
 @dataclass_json
