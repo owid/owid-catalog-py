@@ -12,7 +12,7 @@ SRC = owid tests
 
 check-typing:
 	@echo '==> Checking types'
-	PYTHONPATH=. poetry run mypy --strict .
+	poetry run mypy --strict -p owid -p tests
 
 coverage:
 	@echo '==> Unit testing with coverage'
