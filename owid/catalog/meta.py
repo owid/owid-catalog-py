@@ -76,16 +76,16 @@ class VariableMeta:
 @dataclass_json
 @dataclass
 class TableMeta:
-    name: Optional[str] = None
+    short_name: Optional[str] = None
     title: Optional[str] = None
     description: Optional[str] = None
 
     @property
     def checked_name(self) -> str:
-        if not self.name:
+        if not self.short_name:
             raise Exception("table has no name")
 
-        return self.name
+        return self.short_name
 
 
 @pruned_json
@@ -102,7 +102,7 @@ class DatasetMeta:
 
     # the metadata itself
     namespace: Optional[str] = None
-    name: Optional[str] = None
+    short_name: Optional[str] = None
     title: Optional[str] = None
     description: Optional[str] = None
     sources: List[Source] = field(default_factory=list)
