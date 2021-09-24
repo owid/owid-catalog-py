@@ -62,21 +62,24 @@ class Table(pd.DataFrame):
         if not isinstance(path, str) or not path.endswith(".feather"):
             raise ValueError(f'filename must end in ".feather": {path}')
 
-        primary_key = self.primary_key
-
         # feather can't store the index
         df = pd.DataFrame(self)
-        if primary_key:
+        if self.primary_key:
             df = df.reset_index()
 
         df.to_feather(path, **kwargs)
 
-        # write metadata
         metadata_filename = splitext(path)[0] + ".meta.json"
-        with open(metadata_filename, "w") as ostream:
+        self._save_metadata(metadata_filename)
+
+    def _save_metadata(self, filename: str) -> None:
+        # write metadata
+        with open(filename, "w") as ostream:
             metadata = self.metadata.to_dict()  # type: ignore
-            metadata["primary_key"] = primary_key
-            metadata["fields"] = {k: v.to_dict() for k, v in self._fields.items()}
+            metadata["primary_key"] = self.primary_key
+            metadata["fields"] = {
+                col: self._fields[col].to_dict() for col in self.columns
+            }
             json.dump(metadata, ostream, indent=2)
 
     @classmethod

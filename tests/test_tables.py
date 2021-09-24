@@ -5,6 +5,7 @@
 from owid.catalog.variables import Variable
 import tempfile
 from os.path import join, exists, splitext
+import json
 
 import jsonschema
 import pytest
@@ -25,7 +26,7 @@ def test_add_table_metadata():
     t = Table({"gdp": [100, 102, 104], "country": ["AU", "SE", "CH"]})
 
     # write some metadata
-    t.metadata.name = "my_table"
+    t.metadata.short_name = "my_table"
     t.metadata.title = "My table indeed"
     t.metadata.description = (
         "## Well...\n\nI discovered this table in the Summer of '63..."
@@ -142,6 +143,23 @@ def test_tables_from_dataframes_have_variable_columns():
     assert isinstance(t.gdp, Variable)
 
     t.gdp.metadata.title = "test"
+
+
+def test_tables_always_list_fields_in_metadata():
+    df = pd.DataFrame(
+        {
+            "gdp": [100, 102, 104],
+            "country": ["AU", "SE", "CH"],
+            "french_fries": ["yes", "no", "yes"],
+        }
+    )
+    t = Table(df.set_index("country"))
+    with tempfile.TemporaryDirectory() as temp_dir:
+        t.to_feather(join(temp_dir, "example.feather"))
+        m = json.load(open(join(temp_dir, "example.meta.json")))
+
+    assert m["primary_key"] == ["country"]
+    assert m["fields"] == {"gdp": {}, "french_fries": {}}
 
 
 def assert_tables_eq(lhs: Table, rhs: Table) -> None:
