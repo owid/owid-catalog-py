@@ -53,6 +53,22 @@ class Table(pd.DataFrame):
     def primary_key(self) -> List[str]:
         return [n for n in self.index.names if n]
 
+    def to_csv(self, path: Any, **kwargs: Any) -> None:
+        """
+        Save this table as a csv file plus accompanying JSON metadata file.
+        If the table is stored at "mytable.csv", the metadata will be at
+        "mytable.meta.json".
+        """
+        if not isinstance(path, str) or not path.endswith(".csv"):
+            raise ValueError(f'filename must end in ".csv": {path}')
+
+        # feather can't store the index
+        df = pd.DataFrame(self)
+        df.to_csv(path, **kwargs)
+
+        metadata_filename = splitext(path)[0] + ".meta.json"
+        self._save_metadata(metadata_filename)
+
     def to_feather(self, path: Any, **kwargs: Any) -> None:
         """
         Save this table as a feather file plus accompanying JSON metadata file.
@@ -81,6 +97,35 @@ class Table(pd.DataFrame):
                 col: self._fields[col].to_dict() for col in self.all_columns
             }
             json.dump(metadata, ostream, indent=2)
+
+    @classmethod
+    def read_csv(cls, path: str) -> "Table":
+        """
+        Read the table from csv plus accompanying JSON sidecar.
+        """
+        if not path.endswith(".csv"):
+            raise ValueError(f'filename must end in ".csv": {path}')
+
+        # load the data
+        df = Table(pd.read_csv(path, index_col=False, na_values=[""], keep_default_na=False))
+
+        # load the metadata
+        metadata_filename = splitext(path)[0] + ".meta.json"
+        with open(metadata_filename, "r") as istream:
+            metadata = json.load(istream)
+
+        primary_key = metadata.pop("primary_key") if "primary_key" in metadata else []
+        fields = metadata.pop("fields") if "fields" in metadata else {}
+
+        df.metadata = TableMeta(**metadata)
+        df._fields = defaultdict(
+            VariableMeta, {k: VariableMeta.from_dict(v) for k, v in fields.items()}
+        )
+
+        if primary_key:
+            df.set_index(primary_key, inplace=True)
+
+        return df
 
     @classmethod
     def read_feather(cls, path: str) -> "Table":

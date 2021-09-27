@@ -43,21 +43,32 @@ class Dataset:
 
         return Dataset(path)
 
-    def add(self, table: tables.Table) -> None:
-        "Add this table to the dataset by saving it in the dataset's folder."
-        table_filename = join(self.path, table.metadata.checked_name + ".feather")
-        table.to_feather(table_filename)
+    def add(self, table: tables.Table, format: str = "feather") -> None:
+        """Add this table to the dataset by saving it in the dataset's folder. Defaults to
+        feather format but you can override this to csv by passing 'csv' for the format"""
+        allowed_formats = ["feather", "csv"]
+        if format not in allowed_formats:
+            raise Exception(f"Format '{format}'' is not supported")
+        table_filename = join(self.path, table.metadata.checked_name + f".{format}")
+        if format == "feather":
+            table.to_feather(table_filename)
+        else:
+            table.to_csv(table_filename)
 
     def __getitem__(self, name: str) -> tables.Table:
         table_filename = join(self.path, name + ".feather")
-        if not exists(table_filename):
-            raise KeyError(name)
+        if exists(table_filename):
+            return tables.Table.read_feather(table_filename)
+        table_filename = join(self.path, name + ".csv")
+        if exists(table_filename):
+            return tables.Table.read_csv(table_filename)
+        raise KeyError(name)
 
-        return tables.Table.read_feather(table_filename)
 
     def __contains__(self, name: str) -> bool:
-        table_filename = join(self.path, name + ".feather")
-        return exists(table_filename)
+        feather_table_filename = join(self.path, name + ".feather")
+        csv_table_filename = join(self.path, name + ".csv")
+        return exists(feather_table_filename) or exists(csv_table_filename)
 
     @property
     def _index_file(self) -> str:
@@ -75,8 +86,9 @@ class Dataset:
 
     @property
     def _data_files(self) -> List[str]:
-        pattern = join(self.path, "*.feather")
-        return glob(pattern)
+        feather_pattern = join(self.path, "*.feather")
+        csv_pattern = join(self.path, "*.csv")
+        return glob(feather_pattern) + glob(csv_pattern)
 
 
 for k in DatasetMeta.__dataclass_fields__:  # type: ignore

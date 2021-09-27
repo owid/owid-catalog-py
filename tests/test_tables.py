@@ -159,7 +159,7 @@ def test_tables_always_list_fields_in_metadata():
         m = json.load(open(join(temp_dir, "example.meta.json")))
 
     assert m["primary_key"] == ["country"]
-    assert m["fields"] == {"gdp": {}, "french_fries": {}}
+    assert m["fields"] == {"country": {}, "gdp": {}, "french_fries": {}}
 
 
 def assert_tables_eq(lhs: Table, rhs: Table) -> None:
