@@ -78,7 +78,7 @@ class Table(pd.DataFrame):
             metadata = self.metadata.to_dict()  # type: ignore
             metadata["primary_key"] = self.primary_key
             metadata["fields"] = {
-                col: self._fields[col].to_dict() for col in self.columns
+                col: self._fields[col].to_dict() for col in self.all_columns
             }
             json.dump(metadata, ostream, indent=2)
 
