@@ -107,7 +107,9 @@ class Table(pd.DataFrame):
             raise ValueError(f'filename must end in ".csv": {path}')
 
         # load the data
-        df = Table(pd.read_csv(path, index_col=False, na_values=[""], keep_default_na=False))
+        df = Table(
+            pd.read_csv(path, index_col=False, na_values=[""], keep_default_na=False)
+        )
 
         # load the metadata
         metadata_filename = splitext(path)[0] + ".meta.json"

@@ -64,7 +64,6 @@ class Dataset:
             return tables.Table.read_csv(table_filename)
         raise KeyError(name)
 
-
     def __contains__(self, name: str) -> bool:
         feather_table_filename = join(self.path, name + ".feather")
         csv_table_filename = join(self.path, name + ".csv")
