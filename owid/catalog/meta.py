@@ -83,7 +83,7 @@ class TableMeta:
     @property
     def checked_name(self) -> str:
         if not self.short_name:
-            raise Exception("table has no name")
+            raise Exception("table has no short_name")
 
         return self.short_name
 

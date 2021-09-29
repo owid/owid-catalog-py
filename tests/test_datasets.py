@@ -86,6 +86,32 @@ def test_add_table():
         assert t2.equals_table(t)
 
 
+def test_add_table_csv():
+    t = mock_table()
+
+    with temp_dataset_dir() as dirname:
+        # make a dataset
+        ds = Dataset.create_empty(dirname)
+
+        # add the table, it should be on disk now
+        ds.add(t, format="csv")
+
+        # check that it's really on disk
+        table_files = [
+            join(dirname, t.metadata.checked_name + ".csv"),
+            join(dirname, t.metadata.checked_name + ".meta.json"),
+        ]
+        for filename in table_files:
+            assert exists(filename)
+
+        # load a fresh copy from disk
+        t2 = ds[t.metadata.checked_name]
+        assert id(t2) != id(t)
+
+        # the fresh copy from disk should be identical to the copy we added
+        assert t2.equals_table(t)
+
+
 def test_metadata_roundtrip():
     with temp_dataset_dir() as dirname:
         d = Dataset.create_empty(dirname)
