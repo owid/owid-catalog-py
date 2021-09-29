@@ -53,7 +53,8 @@ class Table(pd.DataFrame):
     def primary_key(self) -> List[str]:
         return [n for n in self.index.names if n]
 
-    def to_csv(self, path: Any, **kwargs: Any) -> None:
+    # Mypy complaints about this not matching the defintiion of NDFrame.to_csv but I don't understand why
+    def to_csv(self, path: Any, **kwargs: Any) -> None: # type: ignore
         """
         Save this table as a csv file plus accompanying JSON metadata file.
         If the table is stored at "mytable.csv", the metadata will be at
