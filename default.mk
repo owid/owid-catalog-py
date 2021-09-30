@@ -11,30 +11,34 @@ default:
 	@echo '  make watch     Run all tests, watching for changes'
 	@echo
 
+.venv: pyproject.toml poetry.toml poetry.lock
+	poetry install
+	touch $@
+
 # check formatting before lint, since an autoformat might fix linting issues
 test-default: check-formatting lint check-typing unittest
 
-lint-default:
+lint-default: .venv
 	@echo '==> Linting'
 	@poetry run flake8 $(SRC)
 
-check-formatting-default:
+check-formatting-default: .venv
 	@echo '==> Checking formatting'
 	@poetry run black --check $(SRC)
 
-check-typing-default:
+check-typing-default: .venv
 	@echo '==> Checking types'
 	PYTHONPATH=. poetry run mypy .
 
-unittest-default:
+unittest-default: .venv
 	@echo '==> Running unit tests'
 	@PYTHONPATH=. poetry run pytest
 
-format-default:
+format-default: .venv
 	@echo '==> Reformatting files'
 	@poetry run black $(SRC)
 
-watch-default:
+watch-default: .venv
 	poetry run watchmedo shell-command -c 'clear; make test' --recursive --drop .
 
 # allow you to override a command, e.g. "watch", but if you do not, then use
