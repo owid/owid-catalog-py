@@ -63,9 +63,10 @@ class Table(pd.DataFrame):
         if not isinstance(path, str) or not path.endswith(".csv"):
             raise ValueError(f'filename must end in ".csv": {path}')
 
-        # feather can't store the index
         df = pd.DataFrame(self)
-        df.to_csv(path, **kwargs)
+        # if the dataframe uses the default index then we don't want to store it (would be a column of row numbers)
+        save_index = self.primary_key != []
+        df.to_csv(path, index=save_index, **kwargs)
 
         metadata_filename = splitext(path)[0] + ".meta.json"
         self._save_metadata(metadata_filename)
