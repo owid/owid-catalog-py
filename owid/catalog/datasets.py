@@ -6,8 +6,10 @@ from os.path import join, isdir, exists
 from os import mkdir
 from dataclasses import dataclass
 import shutil
-from typing import Iterator, List, Literal, Optional
+from typing import Any, Iterator, List, Literal, Optional
 from glob import glob
+import hashlib
+from pathlib import Path
 
 from . import tables
 from .properties import metadata_property
@@ -89,7 +91,20 @@ class Dataset:
     def _data_files(self) -> List[str]:
         feather_pattern = join(self.path, "*.feather")
         csv_pattern = join(self.path, "*.csv")
-        return glob(feather_pattern) + glob(csv_pattern)
+        return sorted(glob(feather_pattern) + glob(csv_pattern))
+
+    def checksum(self) -> str:
+        "Return a MD5 checksum of all data and metadata in the dataset."
+        _hash = hashlib.md5()
+        _hash.update(checksum_file(self._index_file).digest())
+
+        for data_file in self._data_files:
+            _hash.update(checksum_file(data_file).digest())
+
+            metadata_file = Path(data_file).with_suffix(".meta.json").as_posix()
+            _hash.update(checksum_file(metadata_file).digest())
+
+        return _hash.hexdigest()
 
 
 for k in DatasetMeta.__dataclass_fields__:  # type: ignore
@@ -97,3 +112,16 @@ for k in DatasetMeta.__dataclass_fields__:  # type: ignore
         raise Exception(f'metadata field "{k}" would overwrite a Dataset built-in')
 
     setattr(Dataset, k, metadata_property(k))
+
+
+def checksum_file(filename: str) -> Any:
+    "Return the MD5 checksum of a given file."
+    chunk_size = 2 ** 20  # 1MB
+    checksum = hashlib.md5()
+    with open(filename, "rb") as istream:
+        chunk = istream.read(chunk_size)
+        while chunk:
+            checksum.update(chunk)
+            chunk = istream.read(chunk_size)
+
+    return checksum

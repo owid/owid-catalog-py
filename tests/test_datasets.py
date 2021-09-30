@@ -136,6 +136,34 @@ def test_dataset_iteration():
         assert i == len(d)
 
 
+def test_dataset_hash_changes_with_data_changes():
+    with mock_dataset() as d:
+        c1 = d.checksum()
+
+        t = mock_table()
+        d.add(t)
+        c2 = d.checksum()
+
+        assert c1 != c2
+
+
+def test_dataset_hash_invariant_to_copying():
+    # make a mock dataset
+    with mock_dataset() as d1:
+
+        # make a copy of it
+        with temp_dataset_dir() as dirname:
+            d2 = Dataset.create_empty(dirname)
+            d2.metadata = d1.metadata
+            d2.save()
+
+            for t in d1:
+                d2.add(t)
+
+            # the copy should have the same checksum
+            assert d2.checksum() == d1.checksum()
+
+
 @contextmanager
 def temp_dataset_dir(create: bool = False) -> Iterator[str]:
     with tempfile.TemporaryDirectory() as dirname:
@@ -149,6 +177,7 @@ def mock_dataset() -> Iterator[Dataset]:
     with temp_dataset_dir() as dirname:
         d = Dataset.create_empty(dirname)
         d.metadata = mock(DatasetMeta)
+        d.save()
         for i in range(random.randint(2, 5)):
             t = mock_table()
             d.add(t)
