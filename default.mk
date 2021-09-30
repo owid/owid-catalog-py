@@ -39,6 +39,7 @@ format-default: .venv
 	@poetry run black $(SRC)
 
 watch-default: .venv
+	@echo '==> Watching for changes and re-running tests'
 	poetry run watchmedo shell-command -c 'clear; make test' --recursive --drop .
 
 # allow you to override a command, e.g. "watch", but if you do not, then use
