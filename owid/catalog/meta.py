@@ -100,13 +100,15 @@ class DatasetMeta:
     the variable level.
     """
 
-    # the metadata itself
     namespace: Optional[str] = None
     short_name: Optional[str] = None
     title: Optional[str] = None
     description: Optional[str] = None
     sources: List[Source] = field(default_factory=list)
     licenses: List[License] = field(default_factory=list)
+
+    # an md5 checksum of the ingredients used to make this dataset
+    source_checksum: Optional[str] = None
 
     def save(self, filename: str) -> None:
         with open(filename, "w") as ostream:
