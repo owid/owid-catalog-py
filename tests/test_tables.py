@@ -75,7 +75,7 @@ def test_saving_empty_table_fails():
 # The parametrize decorator runs this test multiple times with different formats
 @pytest.mark.parametrize("format", ["csv", "feather"])
 def test_round_trip_no_metadata(format: Literal["csv", "feather"]) -> None:
-    t1 = Table({"gdp": [100, 102, 104], "countries": ["AU", "SE", "CH"]})
+    t1 = Table({"gdp": [100, 102, 104, 100], "countries": ["AU", "SE", "NA", "💡"]})
     with tempfile.TemporaryDirectory() as path:
         filename = join(path, f"table.{format}")
         if format == "feather":
@@ -95,7 +95,7 @@ def test_round_trip_no_metadata(format: Literal["csv", "feather"]) -> None:
 
 @pytest.mark.parametrize("format", ["csv", "feather"])
 def test_round_trip_with_index(format: Literal["csv", "feather"]) -> None:
-    t1 = Table({"gdp": [100, 102, 104], "country": ["AU", "SE", "CH"]})
+    t1 = Table({"gdp": [100, 102, 104], "country": ["AU", "SE", "NA"]})
     t1.set_index("country", inplace=True)
     with tempfile.TemporaryDirectory() as path:
         filename = join(path, f"table.{format}")
@@ -116,7 +116,7 @@ def test_round_trip_with_index(format: Literal["csv", "feather"]) -> None:
 
 @pytest.mark.parametrize("format", ["csv", "feather"])
 def test_round_trip_with_metadata(format: Literal["csv", "feather"]) -> None:
-    t1 = Table({"gdp": [100, 102, 104], "country": ["AU", "SE", "CH"]})
+    t1 = Table({"gdp": [100, 102, 104], "country": ["AU", "SE", "NA"]})
     t1.set_index("country", inplace=True)
     t1.title = "A very special table"
     t1.description = "Something something"
