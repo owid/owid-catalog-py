@@ -6,7 +6,7 @@ from os.path import join, isdir, exists
 from os import mkdir
 from dataclasses import dataclass
 import shutil
-from typing import Iterator, List, Optional
+from typing import Iterator, List, Literal, Optional
 from glob import glob
 
 from . import tables
@@ -43,7 +43,9 @@ class Dataset:
 
         return Dataset(path)
 
-    def add(self, table: tables.Table, format: str = "feather") -> None:
+    def add(
+        self, table: tables.Table, format: Literal["csv", "feather"] = "feather"
+    ) -> None:
         """Add this table to the dataset by saving it in the dataset's folder. Defaults to
         feather format but you can override this to csv by passing 'csv' for the format"""
         allowed_formats = ["feather", "csv"]
