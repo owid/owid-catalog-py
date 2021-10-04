@@ -125,3 +125,14 @@ class DatasetMeta:
     @staticmethod
     def from_dict(d: Dict[str, Any]) -> "DatasetMeta":
         ...
+
+    @property
+    def version(self) -> Optional[str]:
+        if len(self.sources) == 1:
+            (source,) = self.sources
+            if source.publication_date:
+                return source.publication_date
+
+            return str(source.publication_year)
+
+        return None

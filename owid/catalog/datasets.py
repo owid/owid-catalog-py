@@ -90,7 +90,14 @@ class Dataset:
 
     def __iter__(self) -> Iterator[tables.Table]:
         for filename in self._data_files:
-            yield tables.Table.read_feather(filename)
+            if filename.endswith(".feather"):
+                yield tables.Table.read_feather(filename)
+
+            elif filename.endswith(".csv"):
+                yield tables.Table.read_csv(filename)
+
+            else:
+                raise Exception(f"don't know how to read table: {filename}")
 
     @property
     def _data_files(self) -> List[str]:

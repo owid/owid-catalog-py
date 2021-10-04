@@ -4,10 +4,11 @@
 
 from os.path import join, dirname, splitext
 import json
-from typing import Any, Optional, List, Dict
+from typing import Any, Optional, List, Dict, cast
 from collections import defaultdict
 
 import pandas as pd
+import requests
 
 from . import variables
 from .meta import VariableMeta, TableMeta
@@ -143,9 +144,7 @@ class Table(pd.DataFrame):
         df = Table(pd.read_feather(path))
 
         # load the metadata
-        metadata_filename = splitext(path)[0] + ".meta.json"
-        with open(metadata_filename, "r") as istream:
-            metadata = json.load(istream)
+        metadata = cls._read_metadata(path)
 
         primary_key = metadata.pop("primary_key") if "primary_key" in metadata else []
         fields = metadata.pop("fields") if "fields" in metadata else {}
@@ -159,6 +158,16 @@ class Table(pd.DataFrame):
             df.set_index(primary_key, inplace=True)
 
         return df
+
+    @staticmethod
+    def _read_metadata(data_path: str) -> Dict[str, Any]:
+        metadata_path = splitext(data_path)[0] + ".meta.json"
+
+        if metadata_path.startswith("http"):
+            return cast(Dict[str, Any], requests.get(metadata_path).json())
+
+        with open(metadata_path, "r") as istream:
+            return cast(Dict[str, Any], json.load(istream))
 
     def __setitem__(self, key: Any, value: Any) -> Any:
         super().__setitem__(key, value)
