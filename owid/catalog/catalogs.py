@@ -97,6 +97,8 @@ class CatalogFrame(pd.DataFrame):
     DataFrame helper, meant only for displaying catalog results.
     """
 
+    _base_uri = None
+
     _metadata = ["_base_uri"]
 
     @property
