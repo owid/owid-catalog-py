@@ -6,7 +6,7 @@ from os.path import join, isdir, exists
 from os import mkdir
 from dataclasses import dataclass
 import shutil
-from typing import Any, Iterator, List, Literal, Optional
+from typing import Any, Iterator, List, Literal, Optional, Union
 from glob import glob
 import hashlib
 from pathlib import Path
@@ -25,8 +25,13 @@ class Dataset:
     path: str
     metadata: "DatasetMeta"
 
-    def __init__(self, path: str) -> None:
-        self.path = path
+    def __init__(self, path: Union[str, Path]) -> None:
+        # for convenience, accept Path objects directly
+        if isinstance(path, Path):
+            self.path = path.as_posix()
+        else:
+            self.path = path
+
         self.metadata = DatasetMeta.load(self._index_file)
 
     @classmethod
