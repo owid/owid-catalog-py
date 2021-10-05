@@ -4,10 +4,11 @@
 #
 
 from pathlib import Path
-from typing import Optional, Protocol, Iterator, Union, Any
+from typing import Optional, Iterator, Union, Any
 import json
 
 import pandas as pd
+import numpy as np
 
 from .datasets import Dataset
 from .tables import Table
@@ -15,24 +16,48 @@ from .tables import Table
 OWID_CATALOG_URI = "https://owid-catalog.nyc3.digitaloceanspaces.com/"
 
 
-class Catalog(Protocol):
-    def __iter__(self) -> Iterator[Dataset]:
-        ...
+class Catalog:
+    frame: "CatalogFrame"
 
-    def __len__(self) -> int:
-        ...
+    def find(
+        self,
+        table: Optional[str] = None,
+        namespace: Optional[str] = None,
+        dataset: Optional[str] = None,
+    ) -> "CatalogFrame":
+        criteria = np.ones(len(self.frame), dtype=bool)
 
-    def search(self, query: str) -> pd.DataFrame:
-        return self.frame[self.frame.table.apply(lambda t: query in t)]  # type: ignore
+        if table:
+            criteria &= self.frame.table.apply(lambda t: table in t)
+
+        if namespace:
+            criteria &= self.frame.namespace == namespace
+
+        if dataset:
+            criteria &= self.frame.dataset == dataset
+
+        return self.frame[criteria]  # type: ignore
+
+    def find_one(self, *args: Optional[str], **kwargs: Optional[str]) -> Table:
+        return self.find(*args, **kwargs).load()
 
 
 class LocalCatalog(Catalog):
     path: Path
+    frame: "CatalogFrame"
 
     def __init__(self, path: Union[str, Path]) -> None:
         self.path = Path(path)
+        if self._catalog_file.exists():
+            self.frame = CatalogFrame(pd.read_feather(self._catalog_file.as_posix()))
+        else:
+            self.frame = CatalogFrame.create_empty()
 
-    def __iter__(self) -> Iterator[Dataset]:
+    @property
+    def _catalog_file(self) -> Path:
+        return self.path / "catalog.feather"
+
+    def iter_datasets(self) -> Iterator[Dataset]:
         to_search = [self.path]
         while to_search:
             dir = to_search.pop()
@@ -44,18 +69,11 @@ class LocalCatalog(Catalog):
                 if child.is_dir():
                     to_search.append(child)
 
-    def __len__(self) -> int:
-        return sum(1 for ds in self)
-
-    @property
-    def frame(self) -> pd.DataFrame:
-        return pd.read_feather(self.path / "catalog.feather")  # type: ignore
-
     def reindex(self) -> None:
         # walk the directory tree, generate a namespace/version/dataset/table frame
         # save it to feather
         rows = []
-        for ds in self:
+        for ds in self.iter_datasets():
             base = {
                 "namespace": ds.metadata.namespace,
                 "dataset": ds.metadata.short_name,
@@ -79,17 +97,23 @@ class LocalCatalog(Catalog):
                 rows.append(row)
 
         df = pd.DataFrame.from_records(rows)
-        df.to_feather(self.path / "catalog.feather")
+        df.to_feather(self._catalog_file)
+
+        self.frame = CatalogFrame(df)
 
 
 class RemoteCatalog(Catalog):
     uri: str
-    frame: pd.DataFrame
+    frame: "CatalogFrame"
 
     def __init__(self, uri: str = OWID_CATALOG_URI) -> None:
         self.uri = uri
         self.frame = CatalogFrame(pd.read_feather(self.uri + "catalog.feather"))
         self.frame._base_uri = uri
+
+    @property
+    def datasets(self) -> pd.DataFrame:
+        return self.frame[["namespace", "version", "dataset"]].drop_duplicates()
 
 
 class CatalogFrame(pd.DataFrame):
@@ -120,6 +144,19 @@ class CatalogFrame(pd.DataFrame):
             return self.iloc[0].load()  # type: ignore
 
         raise ValueError("only one table can be loaded at once")
+
+    @staticmethod
+    def create_empty() -> "CatalogFrame":
+        return CatalogFrame(
+            {
+                "namespace": [],
+                "version": [],
+                "table": [],
+                "dimensions": [],
+                "path": [],
+                "format": [],
+            }
+        )
 
 
 class CatalogSeries(pd.Series):

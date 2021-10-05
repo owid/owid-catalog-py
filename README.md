@@ -16,6 +16,23 @@ make test
 
 ## Data types
 
+### Catalog
+
+A catalog is an arbitrarily deep folder structure containing datasets inside. It can be local on disk, or remote.
+
+#### Load the remote catalog
+
+```python
+# find the default OWID catalog and fetch the catalog index over HTTPS
+cat = RemoteCatalog()
+
+# get a list of matching tables in different datasets
+matches = cat.find('population')
+
+# fetch a data frame for a specific match over HTTPS
+t = cat.find_one('population', namespace='gapminder')
+```
+
 ### Datasets
 
 A dataset is a folder of tables containing metadata about the overall collection.
