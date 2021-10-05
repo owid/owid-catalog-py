@@ -4,7 +4,7 @@
 #
 
 from pathlib import Path
-from typing import Protocol, Iterator, Union, Any
+from typing import Optional, Protocol, Iterator, Union, Any
 import json
 
 import pandas as pd
@@ -97,7 +97,7 @@ class CatalogFrame(pd.DataFrame):
     DataFrame helper, meant only for displaying catalog results.
     """
 
-    _base_uri = None
+    _base_uri: Optional[str] = None
 
     _metadata = ["_base_uri"]
 
