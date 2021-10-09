@@ -65,7 +65,7 @@ class VariableMeta:
     licenses: List[Source] = field(default_factory=list)
     unit: Optional[str] = None
     short_unit: Optional[str] = None
-    display: Optional[dict] = None
+    display: Optional[Dict[str, Any]] = None
 
     def to_dict(self) -> Dict[str, Any]:
         ...

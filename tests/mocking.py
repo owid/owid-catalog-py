@@ -77,4 +77,7 @@ def mock(_type: type) -> Any:
             }
         )
 
+    elif _type == Any:
+        return mock(random.choice([str, int, float]))
+
     raise ValueError(f"don't know how to mock type: {_type}")
