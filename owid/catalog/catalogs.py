@@ -78,6 +78,7 @@ class LocalCatalog(Catalog):
                 "namespace": ds.metadata.namespace,
                 "dataset": ds.metadata.short_name,
                 "version": ds.metadata.version,
+                "checksum": ds.checksum(),
             }
             for table in ds:
                 row = base.copy()
