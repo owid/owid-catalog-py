@@ -11,6 +11,7 @@ import json
 import jsonschema
 import pytest
 import pandas as pd
+import numpy as np
 
 from owid.catalog.tables import Table, SCHEMA
 from owid.catalog.meta import VariableMeta, TableMeta
@@ -192,6 +193,24 @@ def test_field_access_can_be_typecast():
     v = t.gdp.astype("object")
     t["gdp"] = v
     assert t.gdp.metadata.description == "One two three"
+
+
+def test_tables_can_drop_duplicates():
+    # https://github.com/owid/owid-catalog-py/issues/11
+    t: Table = Table(
+        {"gdp": [100, 100, 102, 104], "country": ["AU", "AU", "SE", "CH"]}
+    ).set_index(
+        "country"
+    )  # type: ignore
+    t.metadata = mock(TableMeta)
+
+    # in the bug, the dtype of t.duplicated() became object
+    dups = t.duplicated()
+    assert dups.dtype == np.bool_
+
+    # this caused drop_duplicates() to fail
+    t2 = t.drop_duplicates()
+    assert isinstance(t2, Table)
 
 
 def assert_tables_eq(lhs: Table, rhs: Table) -> None:
