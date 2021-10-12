@@ -185,6 +185,15 @@ def test_tables_always_list_fields_in_metadata():
     assert m["fields"] == {"country": {}, "gdp": {}, "french_fries": {}}
 
 
+def test_field_access_can_be_typecast():
+    # https://github.com/owid/owid-catalog-py/issues/12
+    t = mock_table()
+    t.gdp.metadata.description = "One two three"
+    v = t.gdp.astype("object")
+    t["gdp"] = v
+    assert t.gdp.metadata.description == "One two three"
+
+
 def assert_tables_eq(lhs: Table, rhs: Table) -> None:
     assert lhs.to_dict() == rhs.to_dict()
     assert lhs.metadata == rhs.metadata

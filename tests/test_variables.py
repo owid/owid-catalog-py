@@ -42,3 +42,12 @@ def test_metadata_survives_slicing() -> None:
 def test_metadata_accessed_in_bulk() -> None:
     v = Variable([1, 2, 3], name="dog")
     assert v.metadata == VariableMeta()
+
+
+def test_variable_can_be_type_cast() -> None:
+    v = Variable([1, 2, 3], name="dog", dtype="object")
+    v.metadata.description == "Blah blah..."
+    v2 = v.astype("int")
+    assert v2.name == v.name
+    assert v2.metadata == v.metadata
+    assert (v == v2).all()

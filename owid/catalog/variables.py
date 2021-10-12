@@ -4,7 +4,7 @@
 
 from os import path
 import json
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, cast
 
 import pandas as pd
 
@@ -74,6 +74,12 @@ class Variable(pd.Series):
     @property
     def metadata(self) -> VariableMeta:
         return self._fields[self.checked_name]
+
+    def astype(self, *args: Any, **kwargs: Any) -> "Variable":
+        # To fix: https://github.com/owid/owid-catalog-py/issues/12
+        v = super().astype(*args, **kwargs)
+        v.name = self.name
+        return cast(Variable, v)
 
 
 # dynamically add all metadata properties to the class
