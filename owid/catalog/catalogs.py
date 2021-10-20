@@ -14,6 +14,7 @@ from .datasets import Dataset
 from .tables import Table
 
 OWID_CATALOG_URI = "https://owid-catalog.nyc3.digitaloceanspaces.com/"
+REMOTE_CATALOG: Optional["RemoteCatalog"] = None
 
 
 class Catalog:
@@ -36,7 +37,7 @@ class Catalog:
         if dataset:
             criteria &= self.frame.dataset == dataset
 
-        return self.frame[criteria]  # type: ignore
+        return self.frame[criteria].drop(columns=["checksum"])  # type: ignore
 
     def find_one(self, *args: Optional[str], **kwargs: Optional[str]) -> Table:
         return self.find(*args, **kwargs).load()
@@ -178,3 +179,20 @@ class CatalogSeries(pd.Series):
                 raise ValueError("unknown format")
 
         raise ValueError("series is not a table spec")
+
+
+def find(
+    table: Optional[str] = None,
+    namespace: Optional[str] = None,
+    dataset: Optional[str] = None,
+) -> "CatalogFrame":
+    global REMOTE_CATALOG
+
+    if not REMOTE_CATALOG:
+        REMOTE_CATALOG = RemoteCatalog()
+
+    return REMOTE_CATALOG.find(table=table, namespace=namespace, dataset=dataset)
+
+
+def find_one(*args: Optional[str], **kwargs: Optional[str]) -> Table:
+    return find(*args, **kwargs).load()
