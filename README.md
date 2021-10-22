@@ -2,16 +2,32 @@
 
 _A Pythonic API for working with OWID's data catalog._
 
-Status: in early development
+Status: experimental, APIs likely to change
+
+## Quickstart
+
+Install with `pip install owid-catalog`. Then you can begin exploring the experimental data catalog:
+
+```python
+from owid import catalog
+
+# look for Covid-19 data, return a data frame of matches
+catalog.find('covid')
+
+# load Covid-19 data from the Our World In Data namespace as a data frame
+df = catalog.find('covid', namespace='owid').load()
+```
 
 ## Development
 
-You need Python 3.9+, `poetry` and `make` installed.
-
-Run unit tests:
+You need Python 3.9+, `poetry` and `make` installed. Clone the repo, then you can simply run:
 
 ```
+# run all unit tests and CI checks
 make test
+
+# watch for changes, then run all checks
+make watch
 ```
 
 ## Data types
@@ -165,3 +181,9 @@ t = Table.read_feather('/tmp/my_table.feather')
 
 t = Table.read_csv('/tmp/my_table.csv')
 ```
+
+
+## Changelog
+
+- `v0.1.0`
+    - Initial release, including searching and fetching data from a remote catalog
