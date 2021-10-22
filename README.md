@@ -185,5 +185,7 @@ t = Table.read_csv('/tmp/my_table.csv')
 
 ## Changelog
 
+- `v0.1.1`
+    - Add support for Python 3.8
 - `v0.1.0`
     - Initial release, including searching and fetching data from a remote catalog
