@@ -185,6 +185,9 @@ t = Table.read_csv('/tmp/my_table.csv')
 
 ## Changelog
 
+- `v0.2.0`
+    - Copy dataset metadata into tables, to make tables more traceable
+    - Add API versioning, and a requirement to update if your version of this library is too old
 - `v0.1.1`
     - Add support for Python 3.8
 - `v0.1.0`
