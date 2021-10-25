@@ -10,6 +10,9 @@ from typing import Any, Iterator, List, Literal, Optional, Union
 from glob import glob
 import hashlib
 from pathlib import Path
+import json
+
+import pandas as pd
 
 from . import tables
 from .properties import metadata_property
@@ -78,12 +81,42 @@ class Dataset:
         csv_table_filename = join(self.path, name + ".csv")
         return exists(feather_table_filename) or exists(csv_table_filename)
 
+    def save(self) -> None:
+        self.metadata.save(self._index_file)
+
+    def index(self, catalog_path: Path) -> pd.DataFrame:
+        """
+        Return a DataFrame describing the contents of this dataset, one row per table.
+        """
+        base = {
+            "namespace": self.metadata.namespace,
+            "dataset": self.metadata.short_name,
+            "version": self.metadata.version,
+            "checksum": self.checksum(),
+        }
+        rows = []
+        for table in self:
+            row = base.copy()
+            assert table.metadata.short_name
+            row["table"] = table.metadata.short_name
+
+            row["dimensions"] = json.dumps(table.primary_key)
+
+            table_path = Path(self.path) / table.metadata.short_name
+            row["path"] = table_path.relative_to(catalog_path).as_posix()
+
+            if table_path.with_suffix(".feather").exists():
+                row["format"] = "feather"
+            elif table_path.with_suffix(".csv").exists():
+                row["format"] = "csv"
+
+            rows.append(row)
+
+        return pd.DataFrame.from_records(rows)
+
     @property
     def _index_file(self) -> str:
         return join(self.path, "index.json")
-
-    def save(self) -> None:
-        self.metadata.save(self._index_file)
 
     def __len__(self) -> int:
         return len(self._data_files)
