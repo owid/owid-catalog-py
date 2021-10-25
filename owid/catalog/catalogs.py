@@ -91,6 +91,8 @@ class LocalCatalog(CatalogMixin):
                     to_search.append(child)
 
     def reindex(self) -> None:
+        self._save_metadata({"format_version": OWID_CATALOG_VERSION})
+
         # walk the directory tree, generate a namespace/version/dataset/table frame
         # save it to feather
         frames = []
@@ -104,8 +106,7 @@ class LocalCatalog(CatalogMixin):
 
         df.sort_values(keys, inplace=True)
         df = df[columns]
-
-        self._save_metadata({"format_version": OWID_CATALOG_VERSION})
+        df.reset_index(drop=True, inplace=True)
         df.to_feather(self._catalog_file)
 
         self.frame = CatalogFrame(df)
