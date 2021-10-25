@@ -149,7 +149,7 @@ class Table(pd.DataFrame):
         primary_key = metadata.pop("primary_key") if "primary_key" in metadata else []
         fields = metadata.pop("fields") if "fields" in metadata else {}
 
-        df.metadata = TableMeta.from_dict(metadata)  # type: ignore
+        df.metadata = TableMeta.from_dict(metadata)
         df._fields = defaultdict(
             VariableMeta, {k: VariableMeta.from_dict(v) for k, v in fields.items()}
         )

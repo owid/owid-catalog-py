@@ -210,7 +210,14 @@ def test_tables_can_drop_duplicates():
 
     # this caused drop_duplicates() to fail
     t2 = t.drop_duplicates()
+
     assert isinstance(t2, Table)
+
+
+def test_extra_fields_ignored_in_metadata() -> None:
+    metadata = {"dog": 1, "sheep": [1, 2, 3], "llama": "Sam"}
+    table_meta = TableMeta.from_dict(metadata)
+    assert table_meta
 
 
 def assert_tables_eq(lhs: Table, rhs: Table) -> None:

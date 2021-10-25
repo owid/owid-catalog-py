@@ -143,3 +143,7 @@ class TableMeta:
             raise Exception("table has no short_name")
 
         return self.short_name
+
+    @staticmethod
+    def from_dict(dict: Dict[str, Any]) -> "TableMeta":
+        ...
