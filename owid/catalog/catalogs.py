@@ -4,20 +4,31 @@
 #
 
 from pathlib import Path
-from typing import Optional, Iterator, Union, Any
+from typing import Dict, Optional, Iterator, Union, Any, cast
 import json
 
 import pandas as pd
 import numpy as np
+import requests
 
 from .datasets import Dataset
 from .tables import Table
 
+# increment this on breaking changes to require clients to update
+OWID_CATALOG_VERSION = 1
+
+# location of the default remote catalog
 OWID_CATALOG_URI = "https://owid-catalog.nyc3.digitaloceanspaces.com/"
+
+# global copy cached after first request
 REMOTE_CATALOG: Optional["RemoteCatalog"] = None
 
 
-class Catalog:
+class CatalogMixin:
+    """
+    Abstract data catalog API, encapsulates finding and loading data.
+    """
+
     frame: "CatalogFrame"
 
     def find(
@@ -43,9 +54,14 @@ class Catalog:
         return self.find(*args, **kwargs).load()
 
 
-class LocalCatalog(Catalog):
+class LocalCatalog(CatalogMixin):
+    """
+    A data catalog that's on disk. On-disk catalogs do not need an index file, since
+    you can simply walk the directory. However, they support a `reindex()` method
+    which can create such an index.
+    """
+
     path: Path
-    frame: "CatalogFrame"
 
     def __init__(self, path: Union[str, Path]) -> None:
         self.path = Path(path)
@@ -57,6 +73,10 @@ class LocalCatalog(Catalog):
     @property
     def _catalog_file(self) -> Path:
         return self.path / "catalog.feather"
+
+    @property
+    def _metadata_file(self) -> Path:
+        return self.path / "catalog.meta.json"
 
     def iter_datasets(self) -> Iterator[Dataset]:
         to_search = [self.path]
@@ -73,49 +93,57 @@ class LocalCatalog(Catalog):
     def reindex(self) -> None:
         # walk the directory tree, generate a namespace/version/dataset/table frame
         # save it to feather
-        rows = []
+        frames = []
         for ds in self.iter_datasets():
-            base = {
-                "namespace": ds.metadata.namespace,
-                "dataset": ds.metadata.short_name,
-                "version": ds.metadata.version,
-                "checksum": ds.checksum(),
-            }
-            for table in ds:
-                row = base.copy()
-                assert table.metadata.short_name
-                row["table"] = table.metadata.short_name
+            frames.append(ds.index(self.path))
 
-                row["dimensions"] = json.dumps(table.primary_key)
+        df = pd.concat(frames, ignore_index=True)
 
-                table_path = Path(ds.path) / table.metadata.short_name
-                row["path"] = table_path.relative_to(self.path).as_posix()
+        keys = ["table", "dataset", "version", "namespace"]
+        columns = keys + [c for c in df.columns if c not in keys]
 
-                if table_path.with_suffix(".feather").exists():
-                    row["format"] = "feather"
-                elif table_path.with_suffix(".csv").exists():
-                    row["format"] = "csv"
+        df.sort_values(keys, inplace=True)
+        df = df[columns]
 
-                rows.append(row)
-
-        df = pd.DataFrame.from_records(rows)
+        self._save_metadata({"format_version": OWID_CATALOG_VERSION})
         df.to_feather(self._catalog_file)
 
         self.frame = CatalogFrame(df)
 
+    def _save_metadata(self, contents: Dict[str, Any]) -> None:
+        with open(self._metadata_file, "w") as ostream:
+            json.dump(contents, ostream, indent=2)
 
-class RemoteCatalog(Catalog):
+
+class RemoteCatalog(CatalogMixin):
     uri: str
     frame: "CatalogFrame"
 
     def __init__(self, uri: str = OWID_CATALOG_URI) -> None:
         self.uri = uri
+        self.metadata = self._read_metadata(self.uri + "catalog.meta.json")
+        if self.metadata["version"] > OWID_CATALOG_VERSION:
+            raise PackageUpdateRequired(
+                f"library supports api version {OWID_CATALOG_VERSION}, "
+                f'but the remote catalog has version {self.metadata["version"]} '
+                "-- please update"
+            )
+
         self.frame = CatalogFrame(pd.read_feather(self.uri + "catalog.feather"))
         self.frame._base_uri = uri
 
     @property
     def datasets(self) -> pd.DataFrame:
         return self.frame[["namespace", "version", "dataset"]].drop_duplicates()
+
+    @staticmethod
+    def _read_metadata(uri: str) -> Dict[str, Any]:
+        """
+        Read the metadata JSON blob for this repo.
+        """
+        resp = requests.get(uri)
+        resp.raise_for_status()
+        return cast(Dict[str, Any], resp.json())
 
 
 class CatalogFrame(pd.DataFrame):
@@ -196,3 +224,7 @@ def find(
 
 def find_one(*args: Optional[str], **kwargs: Optional[str]) -> Table:
     return find(*args, **kwargs).load()
+
+
+class PackageUpdateRequired(Exception):
+    pass
