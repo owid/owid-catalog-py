@@ -87,6 +87,20 @@ class Dataset:
 
     def save(self) -> None:
         self.metadata.save(self._index_file)
+        self._update_table_metadata()
+
+    def _update_table_metadata(self) -> None:
+        "Update the copy of this dataset's metadata in every table in the set."
+        dataset_meta = self.metadata.to_dict()
+
+        for metadata_file in glob(join(self.path, "*.meta.json")):
+            with open(metadata_file) as istream:
+                table_meta = json.load(istream)
+
+            table_meta["dataset"] = dataset_meta
+
+            with open(metadata_file, "w") as ostream:
+                json.dump(table_meta, ostream, indent=2)
 
     def index(self, catalog_path: Path) -> pd.DataFrame:
         """
