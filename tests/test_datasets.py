@@ -66,9 +66,11 @@ def test_add_table():
     with temp_dataset_dir() as dirname:
         # make a dataset
         ds = Dataset.create_empty(dirname)
+        ds.metadata = DatasetMeta(short_name="bob")
 
         # add the table, it should be on disk now
         ds.add(t)
+        assert t.metadata.dataset == ds.metadata
 
         # check that it's really on disk
         table_files = [
@@ -84,6 +86,7 @@ def test_add_table():
 
         # the fresh copy from disk should be identical to the copy we added
         assert t2.equals_table(t)
+        assert t2.metadata.dataset == ds.metadata
 
 
 def test_add_table_csv():

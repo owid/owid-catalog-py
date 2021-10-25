@@ -78,22 +78,6 @@ class VariableMeta:
 @pruned_json
 @dataclass_json
 @dataclass
-class TableMeta:
-    short_name: Optional[str] = None
-    title: Optional[str] = None
-    description: Optional[str] = None
-
-    @property
-    def checked_name(self) -> str:
-        if not self.short_name:
-            raise Exception("table has no short_name")
-
-        return self.short_name
-
-
-@pruned_json
-@dataclass_json
-@dataclass
 class DatasetMeta:
     """
     The metadata for this entire dataset kept in JSON (e.g. mydataset/index.json).
@@ -139,3 +123,23 @@ class DatasetMeta:
             return str(source.publication_year)
 
         return None
+
+
+@pruned_json
+@dataclass_json
+@dataclass
+class TableMeta:
+    # data about this table
+    short_name: Optional[str] = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+
+    # a reference back to the dataset
+    dataset: Optional[DatasetMeta] = field(compare=False, default=None)
+
+    @property
+    def checked_name(self) -> str:
+        if not self.short_name:
+            raise Exception("table has no short_name")
+
+        return self.short_name

@@ -58,6 +58,10 @@ class Dataset:
     ) -> None:
         """Add this table to the dataset by saving it in the dataset's folder. Defaults to
         feather format but you can override this to csv by passing 'csv' for the format"""
+
+        # copy dataset metadata to the table
+        table.metadata.dataset = self.metadata
+
         allowed_formats = ["feather", "csv"]
         if format not in allowed_formats:
             raise Exception(f"Format '{format}'' is not supported")
