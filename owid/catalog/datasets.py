@@ -16,7 +16,7 @@ import pandas as pd
 
 from . import tables
 from .properties import metadata_property
-from .meta import DatasetMeta
+from .meta import DatasetMeta, TableMeta
 
 
 @dataclass
@@ -113,14 +113,18 @@ class Dataset:
             "checksum": self.checksum(),
         }
         rows = []
-        for table in self:
+        for metadata_file in self._metadata_files:
+            with open(metadata_file) as istream:
+                metadata = TableMeta.from_dict(json.load(istream))
+
             row = base.copy()
-            assert table.metadata.short_name
-            row["table"] = table.metadata.short_name
 
-            row["dimensions"] = json.dumps(table.primary_key)
+            assert metadata.short_name
+            row["table"] = metadata.short_name
 
-            table_path = Path(self.path) / table.metadata.short_name
+            row["dimensions"] = json.dumps(metadata.primary_key)
+
+            table_path = Path(self.path) / metadata.short_name
             row["path"] = table_path.relative_to(catalog_path).as_posix()
 
             if table_path.with_suffix(".feather").exists():
@@ -155,6 +159,10 @@ class Dataset:
         feather_pattern = join(self.path, "*.feather")
         csv_pattern = join(self.path, "*.csv")
         return sorted(glob(feather_pattern) + glob(csv_pattern))
+
+    @property
+    def _metadata_files(self) -> List[str]:
+        return sorted(glob(join(self.path, "*.meta.json")))
 
     def checksum(self) -> str:
         "Return a MD5 checksum of all data and metadata in the dataset."

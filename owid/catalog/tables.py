@@ -4,7 +4,7 @@
 
 from os.path import join, dirname, splitext
 import json
-from typing import Any, Optional, List, Dict, cast
+from typing import Any, Optional, List, Dict, Union, cast
 from collections import defaultdict
 
 import pandas as pd
@@ -132,6 +132,38 @@ class Table(pd.DataFrame):
 
         return df
 
+    def set_index(  # type: ignore
+        self,
+        keys: Union[str, List[str]],
+        inplace: bool = False,
+        drop: bool = True,
+        append: bool = False,
+        verify_integrity: bool = False,
+    ) -> Optional[pd.DataFrame]:
+        if isinstance(keys, str):
+            keys = [keys]
+
+        if inplace:
+            super().set_index(
+                keys,
+                inplace=True,
+                drop=drop,
+                append=append,
+                verify_integrity=verify_integrity,
+            )
+            self.metadata.primary_key = keys
+            return None
+
+        t = super().set_index(
+            keys,
+            inplace=False,
+            drop=drop,
+            append=append,
+            verify_integrity=verify_integrity,
+        )
+        t.metadata.primary_key = keys
+        return t
+
     @classmethod
     def read_feather(cls, path: str) -> "Table":
         """
@@ -146,7 +178,7 @@ class Table(pd.DataFrame):
         # load the metadata
         metadata = cls._read_metadata(path)
 
-        primary_key = metadata.pop("primary_key") if "primary_key" in metadata else []
+        primary_key = metadata.get("primary_key", [])
         fields = metadata.pop("fields") if "fields" in metadata else {}
 
         df.metadata = TableMeta.from_dict(metadata)

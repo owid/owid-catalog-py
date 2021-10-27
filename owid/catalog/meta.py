@@ -136,6 +136,7 @@ class TableMeta:
 
     # a reference back to the dataset
     dataset: Optional[DatasetMeta] = field(compare=False, default=None)
+    primary_key: List[str] = field(default_factory=list)
 
     @property
     def checked_name(self) -> str:

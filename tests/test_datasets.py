@@ -85,6 +85,7 @@ def test_add_table():
         assert id(t2) != id(t)
 
         # the fresh copy from disk should be identical to the copy we added
+        assert t2.metadata.primary_key == t.metadata.primary_key
         assert t2.equals_table(t)
         assert t2.metadata.dataset == ds.metadata
 

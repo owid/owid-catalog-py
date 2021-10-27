@@ -231,6 +231,7 @@ def mock_table() -> Table:
         "country"
     )  # type: ignore
     t.metadata = mock(TableMeta)
+    t.metadata.primary_key = ["country"]
     for col in t.all_columns:
         t._fields[col] = mock(VariableMeta)
 
