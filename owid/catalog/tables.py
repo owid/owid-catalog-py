@@ -4,7 +4,7 @@
 
 from os.path import join, dirname, splitext
 import json
-from typing import Any, Optional, List, Dict, Union, cast
+from typing import Any, Literal, Optional, List, Dict, Union, cast
 from collections import defaultdict
 
 import pandas as pd
@@ -72,7 +72,12 @@ class Table(pd.DataFrame):
         metadata_filename = splitext(path)[0] + ".meta.json"
         self._save_metadata(metadata_filename)
 
-    def to_feather(self, path: Any, **kwargs: Any) -> None:
+    def to_feather(
+        self,
+        path: Any,
+        compression: Literal["zstd", "lz4", "uncompressed"] = "zstd",
+        **kwargs: Any,
+    ) -> None:
         """
         Save this table as a feather file plus accompanying JSON metadata file.
         If the table is stored at "mytable.feather", the metadata will be at
@@ -86,7 +91,7 @@ class Table(pd.DataFrame):
         if self.primary_key:
             df = df.reset_index()
 
-        df.to_feather(path, **kwargs)
+        df.to_feather(path, compression=compression, **kwargs)
 
         metadata_filename = splitext(path)[0] + ".meta.json"
         self._save_metadata(metadata_filename)
