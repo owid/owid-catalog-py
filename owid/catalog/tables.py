@@ -12,6 +12,7 @@ import requests
 
 from . import variables
 from .meta import VariableMeta, TableMeta
+from .frames import repack_frame
 
 SCHEMA = json.load(open(join(dirname(__file__), "schemas", "table.json")))
 METADATA_FIELDS = list(SCHEMA["properties"])
@@ -75,6 +76,7 @@ class Table(pd.DataFrame):
     def to_feather(
         self,
         path: Any,
+        repack: bool = True,
         compression: Literal["zstd", "lz4", "uncompressed"] = "zstd",
         **kwargs: Any,
     ) -> None:
@@ -90,6 +92,10 @@ class Table(pd.DataFrame):
         df = pd.DataFrame(self)
         if self.primary_key:
             df = df.reset_index()
+
+        if repack:
+            # use smaller data types wherever possible
+            repack_frame(df)
 
         df.to_feather(path, compression=compression, **kwargs)
 
