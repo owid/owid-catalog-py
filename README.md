@@ -1,5 +1,7 @@
 # owid-catalog
 
+![build status](https://github.com/owid/owid-catalog-py/actions/workflows/python-package.yml/badge.svg)
+
 _A Pythonic API for working with OWID's data catalog._
 
 Status: experimental, APIs likely to change
