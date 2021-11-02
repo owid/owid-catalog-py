@@ -1,6 +1,7 @@
 # owid-catalog
 
 ![build status](https://github.com/owid/owid-catalog-py/actions/workflows/python-package.yml/badge.svg)
+[![PyPI version](https://badge.fury.io/py/owid-catalog.svg)](https://badge.fury.io/py/owid-catalog)
 
 _A Pythonic API for working with OWID's data catalog._
 
