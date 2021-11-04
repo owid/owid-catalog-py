@@ -12,7 +12,7 @@ SRC = owid tests
 
 check-typing: .venv
 	@echo '==> Checking types'
-	poetry run mypy --strict -p owid -p tests
+	@[[ $$(python --version) == *" 3.7"* ]] || poetry run mypy --strict -p owid -p tests
 
 coverage: .venv
 	@echo '==> Unit testing with coverage'
