@@ -6,6 +6,7 @@
 from pathlib import Path
 from typing import Dict, Optional, Iterator, Union, Any, cast
 import json
+import heapq
 
 import pandas as pd
 import numpy as np
@@ -81,14 +82,14 @@ class LocalCatalog(CatalogMixin):
     def iter_datasets(self) -> Iterator[Dataset]:
         to_search = [self.path]
         while to_search:
-            dir = to_search.pop()
+            dir = heapq.heappop(to_search)
             if (dir / "index.json").exists():
                 yield Dataset(dir)
                 continue
 
             for child in dir.iterdir():
                 if child.is_dir():
-                    to_search.append(child)
+                    heapq.heappush(to_search, child)
 
     def reindex(self) -> None:
         self._save_metadata({"format_version": OWID_CATALOG_VERSION})
