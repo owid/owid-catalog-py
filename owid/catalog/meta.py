@@ -4,8 +4,8 @@
 #  Metadata helpers.
 #
 
-
-from typing import Optional, TypeVar, Dict, Any, List
+from pathlib import Path
+from typing import Optional, TypeVar, Dict, Any, List, Union
 from dataclasses import dataclass, field
 import json
 
@@ -97,7 +97,8 @@ class DatasetMeta:
     # an md5 checksum of the ingredients used to make this dataset
     source_checksum: Optional[str] = None
 
-    def save(self, filename: str) -> None:
+    def save(self, filename: Union[str, Path]) -> None:
+        filename = Path(filename).as_posix()
         with open(filename, "w") as ostream:
             json.dump(self.to_dict(), ostream, indent=2)
 

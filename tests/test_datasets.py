@@ -8,14 +8,14 @@ from os import rmdir
 import json
 import shutil
 from contextlib import contextmanager
-from typing import Iterator
+from typing import Iterator, Union
 import random
 from glob import glob
+from pathlib import Path
 
 import pytest
 
-from owid.catalog.datasets import Dataset
-from owid.catalog.meta import DatasetMeta
+from owid.catalog import Dataset, DatasetMeta
 from .test_tables import mock_table
 from .mocking import mock
 
@@ -176,14 +176,19 @@ def temp_dataset_dir(create: bool = False) -> Iterator[str]:
         yield dirname
 
 
+def create_temp_dataset(dirname: Union[Path, str]) -> Dataset:
+    d = Dataset.create_empty(dirname)
+    d.metadata = mock(DatasetMeta)
+    d.metadata.short_name = Path(dirname).name
+    d.save()
+    for _ in range(random.randint(2, 5)):
+        t = mock_table()
+        d.add(t)
+    return d
+
+
 @contextmanager
 def mock_dataset() -> Iterator[Dataset]:
     with temp_dataset_dir() as dirname:
-        d = Dataset.create_empty(dirname)
-        d.metadata = mock(DatasetMeta)
-        d.save()
-        for i in range(random.randint(2, 5)):
-            t = mock_table()
-            d.add(t)
-
+        d = create_temp_dataset(dirname)
         yield d

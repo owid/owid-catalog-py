@@ -2,7 +2,7 @@
 #  datasets.py
 #
 
-from os.path import join, isdir, exists
+from os.path import join, exists
 from os import mkdir
 from dataclasses import dataclass
 import shutil
@@ -39,19 +39,21 @@ class Dataset:
 
     @classmethod
     def create_empty(
-        cls, path: str, metadata: Optional["DatasetMeta"] = None
+        cls, path: Union[str, Path], metadata: Optional["DatasetMeta"] = None
     ) -> "Dataset":
-        if isdir(path):
-            if not exists(join(path, "index.json")):
+        path = Path(path)
+
+        if path.is_dir():
+            if not (path / "index.json").exists():
                 raise Exception(f"refuse to overwrite non-dataset dir at: {path}")
             shutil.rmtree(path)
 
         mkdir(path)
 
-        index_file = join(path, "index.json")
+        index_file = path / "index.json"
         DatasetMeta().save(index_file)
 
-        return Dataset(path)
+        return Dataset(path.as_posix())
 
     def add(
         self, table: tables.Table, format: Literal["csv", "feather"] = "feather"

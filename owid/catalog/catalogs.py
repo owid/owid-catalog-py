@@ -49,7 +49,11 @@ class CatalogMixin:
         if dataset:
             criteria &= self.frame.dataset == dataset
 
-        return self.frame[criteria].drop(columns=["checksum"])  # type: ignore
+        matches = self.frame[criteria]
+        if "checksum" in matches.columns:
+            matches = matches.drop(columns=["checksum"])
+
+        return cast(CatalogFrame, matches)
 
     def find_one(self, *args: Optional[str], **kwargs: Optional[str]) -> Table:
         return self.find(*args, **kwargs).load()
@@ -63,13 +67,15 @@ class LocalCatalog(CatalogMixin):
     """
 
     path: Path
+    frame: "CatalogFrame"
 
     def __init__(self, path: Union[str, Path]) -> None:
         self.path = Path(path)
-        if self._catalog_file.exists():
-            self.frame = CatalogFrame(pd.read_feather(self._catalog_file.as_posix()))
-        else:
-            self.frame = CatalogFrame.create_empty()
+        if not self._catalog_file.exists():
+            self.reindex()
+
+        self.frame = CatalogFrame(pd.read_feather(self._catalog_file.as_posix()))
+        self.frame._base_uri = self.path.as_posix() + "/"
 
     @property
     def _catalog_file(self) -> Path:
