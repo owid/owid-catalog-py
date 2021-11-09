@@ -71,11 +71,15 @@ class LocalCatalog(CatalogMixin):
 
     def __init__(self, path: Union[str, Path]) -> None:
         self.path = Path(path)
-        if not self._catalog_file.exists():
+        if self._catalog_file.exists():
+            df = pd.read_feather(self._catalog_file.as_posix())
+            self.frame = CatalogFrame(df)
+            self.frame._base_uri = self.path.as_posix() + "/"
+        else:
+            # could take a while to generate if there are many datasets
             self.reindex()
 
-        self.frame = CatalogFrame(pd.read_feather(self._catalog_file.as_posix()))
-        self.frame._base_uri = self.path.as_posix() + "/"
+        # ensure the frame knows where to load data from
 
     @property
     def _catalog_file(self) -> Path:
@@ -117,6 +121,7 @@ class LocalCatalog(CatalogMixin):
         df.to_feather(self._catalog_file)
 
         self.frame = CatalogFrame(df)
+        self.frame._base_uri = self.path.as_posix() + "/"
 
     def _save_metadata(self, contents: Dict[str, Any]) -> None:
         with open(self._metadata_file, "w") as ostream:
