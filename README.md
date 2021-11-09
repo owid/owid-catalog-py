@@ -189,6 +189,8 @@ t = Table.read_csv('/tmp/my_table.csv')
 
 ## Changelog
 
+- `v0.2.3`
+    - Fix methods for finding and loading data from a `LocalCatalog`
 - `v0.2.2`
     - Repack frames to compact dtypes on `Table.to_feather()`
 - `v0.2.1`
