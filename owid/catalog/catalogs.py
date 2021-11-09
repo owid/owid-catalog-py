@@ -49,7 +49,11 @@ class CatalogMixin:
         if dataset:
             criteria &= self.frame.dataset == dataset
 
-        return self.frame[criteria].drop(columns=["checksum"])  # type: ignore
+        matches = self.frame[criteria]
+        if "checksum" in matches.columns:
+            matches = matches.drop(columns=["checksum"])
+
+        return cast(CatalogFrame, matches)
 
     def find_one(self, *args: Optional[str], **kwargs: Optional[str]) -> Table:
         return self.find(*args, **kwargs).load()
@@ -63,13 +67,19 @@ class LocalCatalog(CatalogMixin):
     """
 
     path: Path
+    frame: "CatalogFrame"
 
     def __init__(self, path: Union[str, Path]) -> None:
         self.path = Path(path)
         if self._catalog_file.exists():
-            self.frame = CatalogFrame(pd.read_feather(self._catalog_file.as_posix()))
+            df = pd.read_feather(self._catalog_file.as_posix())
+            self.frame = CatalogFrame(df)
+            self.frame._base_uri = self.path.as_posix() + "/"
         else:
-            self.frame = CatalogFrame.create_empty()
+            # could take a while to generate if there are many datasets
+            self.reindex()
+
+        # ensure the frame knows where to load data from
 
     @property
     def _catalog_file(self) -> Path:
@@ -111,6 +121,7 @@ class LocalCatalog(CatalogMixin):
         df.to_feather(self._catalog_file)
 
         self.frame = CatalogFrame(df)
+        self.frame._base_uri = self.path.as_posix() + "/"
 
     def _save_metadata(self, contents: Dict[str, Any]) -> None:
         with open(self._metadata_file, "w") as ostream:
