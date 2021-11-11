@@ -66,6 +66,18 @@ def test_add_field_metadata():
     assert t.iloc[:1].gdp.title == title
 
 
+def test_can_overwrite_column_with_apply():
+    table = Table({"a": [1, 2, 3], "b": [4, 5, 6]})
+    table.a.metadata.title = "This thing is a"
+
+    v = table.a.apply(lambda x: x + 1)
+    assert v.name is not None
+    assert v.metadata.title == "This thing is a"
+
+    table["a"] = v
+    assert table.a.tolist() == [2, 3, 4]
+
+
 def test_saving_empty_table_fails():
     t = Table()
 

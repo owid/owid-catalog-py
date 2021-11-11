@@ -58,7 +58,7 @@ class Variable(pd.Series):
         return self.name
 
     # which fields should pandas propagate on slicing, etc?
-    _metadata = ["_fields"]
+    _metadata = ["_fields", "_name"]
 
     @property
     def _constructor(self) -> type:
