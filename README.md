@@ -189,6 +189,8 @@ t = Table.read_csv('/tmp/my_table.csv')
 
 ## Changelog
 
+- `v0.2.4`
+    - Update the default catalog URL to use a CDN
 - `v0.2.3`
     - Fix methods for finding and loading data from a `LocalCatalog`
 - `v0.2.2`
