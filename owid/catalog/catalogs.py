@@ -19,7 +19,7 @@ from .tables import Table
 OWID_CATALOG_VERSION = 1
 
 # location of the default remote catalog
-OWID_CATALOG_URI = "https://owid-catalog.nyc3.digitaloceanspaces.com/"
+OWID_CATALOG_URI = "https://catalog.ourworldindata.org/"
 
 # global copy cached after first request
 REMOTE_CATALOG: Optional["RemoteCatalog"] = None
