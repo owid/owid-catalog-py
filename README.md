@@ -189,6 +189,8 @@ t = Table.read_csv('/tmp/my_table.csv')
 
 ## Changelog
 
+- `v0.2.5`
+    - Fix ability to load remote CSV tables
 - `v0.2.4`
     - Update the default catalog URL to use a CDN
 - `v0.2.3`
