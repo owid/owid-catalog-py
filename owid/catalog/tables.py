@@ -126,9 +126,7 @@ class Table(pd.DataFrame):
         )
 
         # load the metadata
-        metadata_filename = splitext(path)[0] + ".meta.json"
-        with open(metadata_filename, "r") as istream:
-            metadata = json.load(istream)
+        metadata = cls._read_metadata(path)
 
         primary_key = metadata.pop("primary_key") if "primary_key" in metadata else []
         fields = metadata.pop("fields") if "fields" in metadata else {}

@@ -248,3 +248,9 @@ def mock_table() -> Table:
         t._fields[col] = mock(VariableMeta)
 
     return t
+
+
+def test_load_csv_table_over_http() -> None:
+    Table.read_csv(
+        "http://owid-catalog.nyc3.digitaloceanspaces.com/reference/countries_regions.csv"
+    )
