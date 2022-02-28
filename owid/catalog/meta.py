@@ -93,6 +93,7 @@ class DatasetMeta:
     description: Optional[str] = None
     sources: List[Source] = field(default_factory=list)
     licenses: List[License] = field(default_factory=list)
+    is_public: bool = True
 
     # an md5 checksum of the ingredients used to make this dataset
     source_checksum: Optional[str] = None

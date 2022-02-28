@@ -113,6 +113,7 @@ class Dataset:
             "dataset": self.metadata.short_name,
             "version": self.metadata.version,
             "checksum": self.checksum(),
+            "is_public": self.metadata.is_public,
         }
         rows = []
         for metadata_file in self._metadata_files:

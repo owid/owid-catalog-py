@@ -6,14 +6,18 @@
 from pathlib import Path
 from typing import Dict, Optional, Iterator, Union, Any, cast
 import json
+import os
 import heapq
 
 import pandas as pd
 import numpy as np
 import requests
+import tempfile
+from urllib.parse import urlparse
 
 from .datasets import Dataset
 from .tables import Table
+from . import s3_utils
 
 # increment this on breaking changes to require clients to update
 OWID_CATALOG_VERSION = 1
@@ -112,7 +116,7 @@ class LocalCatalog(CatalogMixin):
 
         df = pd.concat(frames, ignore_index=True)
 
-        keys = ["table", "dataset", "version", "namespace"]
+        keys = ["table", "dataset", "version", "namespace", "is_public"]
         columns = keys + [c for c in df.columns if c not in keys]
 
         df.sort_values(keys, inplace=True)
@@ -211,13 +215,20 @@ class CatalogSeries(pd.Series):
 
     def load(self) -> Table:
         if self.path and self.format and self._base_uri:
-            uri = self._base_uri + self.path
-            if self.format == "feather":
-                return Table.read_feather(uri + ".feather")
-            elif self.format == "csv":
-                return Table.read_csv(uri + ".csv")
-            else:
-                raise ValueError("unknown format")
+            with tempfile.TemporaryDirectory() as tmpdir:
+                uri = self._base_uri + self.path + "." + self.format
+
+                # download the data locally first if the file is private
+                # keep backward compatibility
+                if not getattr(self, 'is_public', True):
+                    uri = _download_private_file(uri, tmpdir)
+
+                if self.format == "feather":
+                    return Table.read_feather(uri)
+                elif self.format == "csv":
+                    return Table.read_csv(uri)
+                else:
+                    raise ValueError("unknown format")
 
         raise ValueError("series is not a table spec")
 
@@ -237,6 +248,20 @@ def find(
 
 def find_one(*args: Optional[str], **kwargs: Optional[str]) -> Table:
     return find(*args, **kwargs).load()
+
+
+def _download_private_file(uri: str, tmpdir: str) -> str:
+    parsed = urlparse(uri)
+    base, ext = os.path.splitext(parsed.path)
+    s3_utils.download(
+        "s3://owid-catalog" + base + ".meta.json",
+        tmpdir + "/data.meta.json",
+    )
+    s3_utils.download(
+        "s3://owid-catalog" + base + ext,
+        tmpdir + "/data" + ext,
+    )
+    return tmpdir + "/data" + ext
 
 
 class PackageUpdateRequired(Exception):
