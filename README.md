@@ -189,6 +189,8 @@ t = Table.read_csv('/tmp/my_table.csv')
 
 ## Changelog
 
+- `master`
+    - Add flag `is_public` for public/private datasets
 - `v0.2.5`
     - Fix ability to load remote CSV tables
 - `v0.2.4`
