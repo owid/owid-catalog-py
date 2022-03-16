@@ -35,7 +35,7 @@ def test_create_empty():
         assert exists(join(dirname, "index.json"))
         with open(join(dirname, "index.json")) as istream:
             doc = json.load(istream)
-        assert doc == {}
+        assert doc == {"is_public": True}
 
 
 def test_create_fails_if_non_dataset_dir_exists():
@@ -57,7 +57,7 @@ def test_create_overwrites_entire_folder():
     # this should have been deleted
     assert not exists(join(dirname, "hallo-thar.txt"))
 
-    assert open(d._index_file).read().strip() == "{}"
+    assert open(d._index_file).read().strip() == '{\n  "is_public": true\n}'
 
 
 def test_add_table():
@@ -180,6 +180,7 @@ def create_temp_dataset(dirname: Union[Path, str]) -> Dataset:
     d = Dataset.create_empty(dirname)
     d.metadata = mock(DatasetMeta)
     d.metadata.short_name = Path(dirname).name
+    d.metadata.is_public = True
     d.save()
     for _ in range(random.randint(2, 5)):
         t = mock_table()
