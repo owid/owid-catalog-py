@@ -25,6 +25,9 @@ OWID_CATALOG_VERSION = 1
 # location of the default remote catalog
 OWID_CATALOG_URI = "https://catalog.ourworldindata.org/"
 
+# S3 location for private files
+S3_OWID_URI = "s3://owid-catalog"
+
 # global copy cached after first request
 REMOTE_CATALOG: Optional["RemoteCatalog"] = None
 
@@ -220,7 +223,7 @@ class CatalogSeries(pd.Series):
 
                 # download the data locally first if the file is private
                 # keep backward compatibility
-                if not getattr(self, 'is_public', True):
+                if not getattr(self, "is_public", True):
                     uri = _download_private_file(uri, tmpdir)
 
                 if self.format == "feather":
@@ -254,11 +257,11 @@ def _download_private_file(uri: str, tmpdir: str) -> str:
     parsed = urlparse(uri)
     base, ext = os.path.splitext(parsed.path)
     s3_utils.download(
-        "s3://owid-catalog" + base + ".meta.json",
+        S3_OWID_URI + base + ".meta.json",
         tmpdir + "/data.meta.json",
     )
     s3_utils.download(
-        "s3://owid-catalog" + base + ext,
+        S3_OWID_URI + base + ext,
         tmpdir + "/data" + ext,
     )
     return tmpdir + "/data" + ext
