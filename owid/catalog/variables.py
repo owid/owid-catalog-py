@@ -75,6 +75,10 @@ class Variable(pd.Series):
     def metadata(self) -> VariableMeta:
         return self._fields[self.checked_name]
 
+    @metadata.setter
+    def metadata(self, meta: VariableMeta) -> None:
+        self._fields[self.checked_name] = meta
+
     def astype(self, *args: Any, **kwargs: Any) -> "Variable":
         # To fix: https://github.com/owid/owid-catalog-py/issues/12
         v = super().astype(*args, **kwargs)
