@@ -9,7 +9,6 @@ import shutil
 from typing import Any, Iterator, List, Literal, Optional, Union
 from glob import glob
 import hashlib
-import re
 from pathlib import Path
 import json
 
@@ -63,9 +62,9 @@ class Dataset:
         """Add this table to the dataset by saving it in the dataset's folder. Defaults to
         feather format but you can override this to csv by passing 'csv' for the format"""
 
-        _validate_snake_case(table.metadata.short_name, "Table short_name")
+        utils.validate_snake_case(table.metadata.short_name, "Table's short_name")
         for col in list(table.columns) + list(table.index.names):
-            _validate_snake_case(col, "Variable name")
+            utils.validate_snake_case(col, "Variable's name")
 
         # copy dataset metadata to the table
         table.metadata.dataset = self.metadata
@@ -96,7 +95,7 @@ class Dataset:
         return exists(feather_table_filename) or exists(csv_table_filename)
 
     def save(self) -> None:
-        _validate_snake_case(self.metadata.short_name, "Dataset short_name")
+        utils.validate_snake_case(self.metadata.short_name, "Dataset's short_name")
 
         self.metadata.save(self._index_file)
         self._update_table_metadata()
@@ -214,11 +213,3 @@ def checksum_file(filename: str) -> Any:
             chunk = istream.read(chunk_size)
 
     return checksum
-
-
-def _validate_snake_case(name: Optional[str], object_name: str) -> None:
-    """Raise error if name is not snake_case."""
-    if name is not None and name != utils.underscore(name):
-        raise NameError(
-            f"{object_name} must be snake_case. Change `{name}` to `{utils.underscore(name)}`"
-        )

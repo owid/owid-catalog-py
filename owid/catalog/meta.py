@@ -88,6 +88,8 @@ class DatasetMeta:
     """
 
     namespace: Optional[str] = None
+    # NOTE: short_name should be underscore and validate in setter, however this
+    # is nontrivial to do with `dataclass_json` (see https://github.com/lidatong/dataclasses-json/issues/176)
     short_name: Optional[str] = None
     title: Optional[str] = None
     description: Optional[str] = None
