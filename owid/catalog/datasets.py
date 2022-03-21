@@ -18,6 +18,7 @@ import pandas as pd
 from . import tables
 from .properties import metadata_property
 from .meta import DatasetMeta, TableMeta
+from . import utils
 
 
 @dataclass
@@ -85,7 +86,9 @@ class Dataset:
         table_filename = join(self.path, name + ".csv")
         if exists(table_filename):
             return tables.Table.read_csv(table_filename)
-        raise KeyError(name)
+        raise KeyError(
+            f"Table `{name}` not found, available tables: {', '.join(self.table_names)}"
+        )
 
     def __contains__(self, name: str) -> bool:
         feather_table_filename = join(self.path, name + ".feather")
@@ -171,6 +174,11 @@ class Dataset:
         return sorted(glob(feather_pattern) + glob(csv_pattern))
 
     @property
+    def table_names(self) -> List[str]:
+        """Return table names available in the dataset."""
+        return [Path(f).stem for f in self._data_files]
+
+    @property
     def _metadata_files(self) -> List[str]:
         return sorted(glob(join(self.path, "*.meta.json")))
 
@@ -208,13 +216,9 @@ def checksum_file(filename: str) -> Any:
     return checksum
 
 
-def _underscore(name: str) -> str:
-    return re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
-
-
 def _validate_snake_case(name: Optional[str], object_name: str) -> None:
     """Raise error if name is not snake_case."""
-    if name is not None and name != _underscore(name):
+    if name is not None and name != utils.underscore(name):
         raise NameError(
-            f"{object_name} must be snake_case. Change {name} to {_underscore(name)}"
+            f"{object_name} must be snake_case. Change `{name}` to `{utils.underscore(name)}`"
         )

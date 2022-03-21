@@ -125,6 +125,7 @@ ds_new = ds.copy('/tmp/new_data_path')
 shutil.copytree('/tmp/old_data', '/tmp/new_data_path')
 ds_new = Dataset('/tmp/new_data_path')
 ```
+
 ### Tables
 
 Tables are essentially pandas DataFrames but with metadata. All operations on them occur in-memory, except for loading from and saving to disk. On disk, they are represented by tabular file (feather or CSV) and a JSON metadata file.
@@ -186,25 +187,25 @@ t = Table.read_feather('/tmp/my_table.feather')
 t = Table.read_csv('/tmp/my_table.csv')
 ```
 
-
 ## Changelog
 
 - `master`
-    - Add flag `is_public` for public/private datasets
+  - Add flag `is_public` for public/private datasets
+  - Enforce snake_case for table, dataset and variable short names
 - `v0.2.5`
-    - Fix ability to load remote CSV tables
+  - Fix ability to load remote CSV tables
 - `v0.2.4`
-    - Update the default catalog URL to use a CDN
+  - Update the default catalog URL to use a CDN
 - `v0.2.3`
-    - Fix methods for finding and loading data from a `LocalCatalog`
+  - Fix methods for finding and loading data from a `LocalCatalog`
 - `v0.2.2`
-    - Repack frames to compact dtypes on `Table.to_feather()`
+  - Repack frames to compact dtypes on `Table.to_feather()`
 - `v0.2.1`
-    - Fix key typo used in version check
+  - Fix key typo used in version check
 - `v0.2.0`
-    - Copy dataset metadata into tables, to make tables more traceable
-    - Add API versioning, and a requirement to update if your version of this library is too old
+  - Copy dataset metadata into tables, to make tables more traceable
+  - Add API versioning, and a requirement to update if your version of this library is too old
 - `v0.1.1`
-    - Add support for Python 3.8
+  - Add support for Python 3.8
 - `v0.1.0`
-    - Initial release, including searching and fetching data from a remote catalog
+  - Initial release, including searching and fetching data from a remote catalog
