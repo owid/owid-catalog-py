@@ -168,6 +168,35 @@ def test_dataset_hash_invariant_to_copying():
             assert d2.checksum() == d1.checksum()
 
 
+def test_snake_case_dataset():
+    with mock_dataset() as d:
+        # short_name of a dataset must be snake_case
+        d.metadata.short_name = "camelCase"
+        with pytest.raises(NameError):
+            d.save()
+
+
+def test_snake_case_table():
+    with mock_dataset() as d:
+        # short_name of a table must be snake_case
+        t = mock_table()
+        t.metadata.short_name = "camelCase"
+        with pytest.raises(NameError):
+            d.add(t)
+
+        # short_name of a dataset must be snake_case
+        t = mock_table()
+        t["camelCase"] = 1
+        with pytest.raises(NameError):
+            d.add(t)
+
+        # short_name of columns and index names must be snake_case
+        t = mock_table()
+        t.index.names = ["Country"]
+        with pytest.raises(NameError):
+            d.add(t)
+
+
 @contextmanager
 def temp_dataset_dir(create: bool = False) -> Iterator[str]:
     with tempfile.TemporaryDirectory() as dirname:

@@ -17,6 +17,7 @@ import pandas as pd
 from . import tables
 from .properties import metadata_property
 from .meta import DatasetMeta, TableMeta
+from . import utils
 
 
 @dataclass
@@ -61,6 +62,10 @@ class Dataset:
         """Add this table to the dataset by saving it in the dataset's folder. Defaults to
         feather format but you can override this to csv by passing 'csv' for the format"""
 
+        utils.validate_snake_case(table.metadata.short_name, "Table's short_name")
+        for col in list(table.columns) + list(table.index.names):
+            utils.validate_snake_case(col, "Variable's name")
+
         # copy dataset metadata to the table
         table.metadata.dataset = self.metadata
 
@@ -80,7 +85,9 @@ class Dataset:
         table_filename = join(self.path, name + ".csv")
         if exists(table_filename):
             return tables.Table.read_csv(table_filename)
-        raise KeyError(name)
+        raise KeyError(
+            f"Table `{name}` not found, available tables: {', '.join(self.table_names)}"
+        )
 
     def __contains__(self, name: str) -> bool:
         feather_table_filename = join(self.path, name + ".feather")
@@ -88,6 +95,8 @@ class Dataset:
         return exists(feather_table_filename) or exists(csv_table_filename)
 
     def save(self) -> None:
+        utils.validate_snake_case(self.metadata.short_name, "Dataset's short_name")
+
         self.metadata.save(self._index_file)
         self._update_table_metadata()
 
@@ -162,6 +171,11 @@ class Dataset:
         feather_pattern = join(self.path, "*.feather")
         csv_pattern = join(self.path, "*.csv")
         return sorted(glob(feather_pattern) + glob(csv_pattern))
+
+    @property
+    def table_names(self) -> List[str]:
+        """Return table names available in the dataset."""
+        return [Path(f).stem for f in self._data_files]
 
     @property
     def _metadata_files(self) -> List[str]:
