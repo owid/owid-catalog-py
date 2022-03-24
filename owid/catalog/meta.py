@@ -31,6 +31,15 @@ def pruned_json(cls: T) -> T:
 @dataclass_json
 @dataclass
 class Source:
+    """Notes on importing sources to grapher:
+    - Field `source.description` gets mapped to `Internal notes`, but we rather use it for `additional_info`
+    - The most important fields are `published_by`, `publisher_source` and `additional_info`
+    - In admin for dataset (i.e. /admin/datasets/1234) only the first source of a dataset is shown and
+        can be edited. The other ones are not visible.
+
+    TODO: should I consolidate multiple sources for a dataset into a single one?
+    """
+
     name: Optional[str] = None
     description: Optional[str] = None
     url: Optional[str] = None
@@ -39,6 +48,11 @@ class Source:
     date_accessed: Optional[str] = None
     publication_date: Optional[str] = None
     publication_year: Optional[int] = None
+    # specific fields for grapher
+    # NOTE: it's not clear how to map description & name to fields in grapher, so
+    # we're keeping both for the time being. We might consolidate them in the future
+    published_by: Optional[str] = None
+    publisher_source: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         ...
@@ -66,6 +80,7 @@ class VariableMeta:
     unit: Optional[str] = None
     short_unit: Optional[str] = None
     display: Optional[Dict[str, Any]] = None
+    additional_info: Optional[Dict[str, Any]] = None
 
     def to_dict(self) -> Dict[str, Any]:
         ...
@@ -96,6 +111,7 @@ class DatasetMeta:
     sources: List[Source] = field(default_factory=list)
     licenses: List[License] = field(default_factory=list)
     is_public: bool = True
+    additional_info: Optional[Dict[str, Any]] = None
 
     # an md5 checksum of the ingredients used to make this dataset
     source_checksum: Optional[str] = None
