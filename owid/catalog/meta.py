@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Optional, TypeVar, Dict, Any, List, Union
 from dataclasses import dataclass, field
 import json
+import yaml
 
 from dataclasses_json import dataclass_json
 
@@ -36,8 +37,6 @@ class Source:
     - The most important fields are `published_by`, `publisher_source` and `additional_info`
     - In admin for dataset (i.e. /admin/datasets/1234) only the first source of a dataset is shown and
         can be edited. The other ones are not visible.
-
-    TODO: should I consolidate multiple sources for a dataset into a single one?
     """
 
     name: Optional[str] = None
@@ -143,6 +142,27 @@ class DatasetMeta:
             return str(source.publication_year)
 
         return None
+
+    def update_from_yaml(self, path: Union[Path, str]) -> None:
+        """Update metadata from a YAML file."""
+        with open(path) as istream:
+            annot = yaml.safe_load(istream)
+
+        # update sources of dataset
+        for source_annot in annot["dataset"].get("sources", []):
+            # if there's an existing source, update it
+            ds_sources = [s for s in self.sources if s.name == source_annot["name"]]
+            if ds_sources:
+                for k, v in source_annot.items():
+                    setattr(ds_sources[0], k, v)
+            # otherwise create new source
+            else:
+                self.sources.append(Source(**source_annot))
+
+        # update dataset
+        for k, v in annot["dataset"].items():
+            if k != "sources":
+                setattr(self, k, v)
 
 
 @pruned_json
