@@ -144,7 +144,7 @@ class DatasetMeta:
         return None
 
     def update_from_yaml(self, path: Union[Path, str]) -> None:
-        """Update metadata from a YAML file."""
+        """The main reason for wanting to do this is to manually override what goes into Grapher before an export."""
         with open(path) as istream:
             annot = yaml.safe_load(istream)
 
