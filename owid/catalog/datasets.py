@@ -62,9 +62,9 @@ class Dataset:
         """Add this table to the dataset by saving it in the dataset's folder. Defaults to
         feather format but you can override this to csv by passing 'csv' for the format"""
 
-        utils.validate_snake_case(table.metadata.short_name, "Table's short_name")
+        utils.validate_underscore(table.metadata.short_name, "Table's short_name")
         for col in list(table.columns) + list(table.index.names):
-            utils.validate_snake_case(col, "Variable's name")
+            utils.validate_underscore(col, "Variable's name")
 
         # copy dataset metadata to the table
         table.metadata.dataset = self.metadata
@@ -95,7 +95,7 @@ class Dataset:
         return exists(feather_table_filename) or exists(csv_table_filename)
 
     def save(self) -> None:
-        utils.validate_snake_case(self.metadata.short_name, "Dataset's short_name")
+        utils.validate_underscore(self.metadata.short_name, "Dataset's short_name")
 
         self.metadata.save(self._index_file)
         self._update_table_metadata()
