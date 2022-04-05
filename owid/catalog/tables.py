@@ -4,6 +4,7 @@
 
 from os.path import join, dirname, splitext
 import json
+import copy
 from typing import Any, Literal, Optional, List, Dict, Union, cast
 from collections import defaultdict
 
@@ -242,6 +243,8 @@ class Table(pd.DataFrame):
 
         if kwargs.get("inplace"):
             new_table = self
+        else:
+            new_table._fields = copy.deepcopy(self._fields)
 
         # rename metadata for changed columns
         for old_col, new_col in zip(old_cols, new_table.columns):

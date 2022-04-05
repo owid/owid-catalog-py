@@ -257,15 +257,22 @@ def test_load_csv_table_over_http() -> None:
 
 
 def test_rename_columns() -> None:
-    t = mock_table()
+    t: Table = Table({"gdp": [100, 102, 104], "country": ["AU", "SE", "CH"]}).set_index(
+        "country"
+    )  # type: ignore
     t.gdp.metadata.title = "GDP"
-    t = t.rename(columns={"gdp": "new_gdp"})
-    assert t.new_gdp.metadata.title == "GDP"
-    assert t.columns == ["new_gdp"]
+    new_t = t.rename(columns={"gdp": "new_gdp"})
+    assert new_t.new_gdp.metadata.title == "GDP"
+    assert new_t.columns == ["new_gdp"]
+
+    # old table hasn't changed
+    assert t.gdp.metadata.title == "GDP"
 
 
 def test_rename_columns_inplace() -> None:
-    t = mock_table()
+    t: Table = Table({"gdp": [100, 102, 104], "country": ["AU", "SE", "CH"]}).set_index(
+        "country"
+    )  # type: ignore
     t.gdp.metadata.title = "GDP"
     t.rename(columns={"gdp": "new_gdp"}, inplace=True)
     assert t.new_gdp.metadata.title == "GDP"
