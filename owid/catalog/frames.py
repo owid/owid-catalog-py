@@ -3,13 +3,15 @@
 #  etl
 #
 
-from typing import Any, Dict, List, Optional, Union, cast
+from typing import Any, Dict, List, Optional, cast
 
 import numpy as np
 import pandas as pd
 
 
-def repack_frame(df: pd.DataFrame, remap: Optional[Dict[str, str]] = None) -> None:
+def repack_frame(
+    df: pd.DataFrame, remap: Optional[Dict[str, str]] = None
+) -> pd.DataFrame:
     """
     Convert the DataFrame's columns to the most compact types possible.
     Rename columns if necessary during the repacking. The column renames
@@ -28,8 +30,7 @@ def repack_frame(df: pd.DataFrame, remap: Optional[Dict[str, str]] = None) -> No
         df.reset_index(inplace=True)
 
     # repack each column into the best dtype we can give it
-    for col in df.columns:
-        df[col] = repack_series(df[col])
+    df = pd.concat([repack_series(df[col]) for col in df.columns], axis=1)
 
     # remap all column names, including those in the primary key
     for from_, to_ in remap.items():
@@ -42,6 +43,8 @@ def repack_frame(df: pd.DataFrame, remap: Optional[Dict[str, str]] = None) -> No
     # set the primary key back again
     if primary_key:
         df.set_index(primary_key, inplace=True)
+
+    return df
 
 
 def repack_series(s: pd.Series) -> pd.Series:
@@ -60,10 +63,7 @@ def repack_series(s: pd.Series) -> pd.Series:
 
 def to_int(s: pd.Series) -> pd.Series:
     # values could be integers or strings
-    def intify(v: Any) -> Union[int, None]:
-        return int(v) if not pd.isnull(v) else None
-
-    v = cast(pd.Series, s.apply(intify).astype("Int64"))
+    v = s.astype("float64").astype("Int64")
 
     if not series_eq(v, s, cast=float):
         raise ValueError()
@@ -127,9 +127,18 @@ def series_eq(
     NaN != NaN, we want missing or null values to be reported as equal to each
     other.
     """
+    # NOTE: this could be speeded up with numpy methods or smarter comparison,
+    # but it's not bottleneck at the moment
     if len(lhs) != len(rhs) or (lhs.isnull() != rhs.isnull()).any():
         return False
 
-    lhs_values = lhs.dropna().apply(cast)
-    rhs_values = rhs.dropna().apply(cast)
+    # improve performance by calling native astype method
+    if cast == float:
+        func = lambda s: s.astype(float)  # noqa: E731
+    else:
+        func = lambda s: s.apply(cast)  # noqa: E731
+
+    lhs_values = func(lhs.dropna())  # type: ignore
+    rhs_values = func(lhs.dropna())  # type: ignore
+
     return np.allclose(lhs_values, rhs_values, rtol=rtol, atol=atol)

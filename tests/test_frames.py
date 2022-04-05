@@ -18,7 +18,7 @@ def test_repack_non_object_columns():
     df["mycat"] = df["mycat"].astype("category")
 
     df2 = df.copy()
-    frames.repack_frame(df2, {})
+    df2 = frames.repack_frame(df2, {})
 
     assert df2.myint.dtype.name == "uint8"
     assert df2.myfloat.dtype.name == "float32"
@@ -37,7 +37,7 @@ def test_repack_object_columns():
 
     df_repack = df.copy()
 
-    frames.repack_frame(df_repack)
+    df_repack = frames.repack_frame(df_repack)
     assert df_repack.myint.dtype.name == "UInt8"
     assert df_repack.myfloat.dtype.name == "float32"
     assert df_repack.mycat.dtype.name == "category"

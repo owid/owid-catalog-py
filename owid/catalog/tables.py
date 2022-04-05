@@ -100,7 +100,7 @@ class Table(pd.DataFrame):
 
         if repack:
             # use smaller data types wherever possible
-            repack_frame(df)
+            df = repack_frame(df)
 
         df.to_feather(path, compression=compression, **kwargs)
 
@@ -238,20 +238,24 @@ class Table(pd.DataFrame):
     )
     def rename(self, *args: Any, **kwargs: Any) -> Optional["Table"]:
         """Rename columns while keeping their metadata."""
-        old_cols = self.columns
+        inplace = kwargs.get("inplace")
+        old_cols = self.all_columns
         new_table = super().rename(*args, **kwargs)
 
-        if kwargs.get("inplace"):
+        if inplace:
             new_table = self
-        else:
-            new_table._fields = copy.deepcopy(self._fields)
 
-        # rename metadata for changed columns
-        for old_col, new_col in zip(old_cols, new_table.columns):
-            if old_col != new_col:
-                new_table._fields[new_col] = new_table._fields.pop(old_col)
+        # construct new _fields attribute
+        fields = {
+            new_col: self._fields[old_col] if inplace
+            # avoid deepcopy if inplace to make it faster
+            else copy.deepcopy(self._fields[old_col])
+            for old_col, new_col in zip(old_cols, new_table.all_columns)
+        }
 
-        if kwargs.get("inplace"):
+        new_table._fields = defaultdict(VariableMeta, fields)
+
+        if inplace:
             return None
         else:
             return cast(Table, new_table)
