@@ -235,7 +235,7 @@ class Table(pd.DataFrame):
         "mapper",
         [("copy", True), ("inplace", False), ("level", None), ("errors", "ignore")],
     )
-    def rename(self, *args, **kwargs) -> Optional["Table"]:
+    def rename(self, *args: Any, **kwargs: Any) -> Optional["Table"]:
         """Rename columns while keeping their metadata."""
         old_cols = self.columns
         new_table = super().rename(*args, **kwargs)

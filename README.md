@@ -130,6 +130,8 @@ ds_new = Dataset('/tmp/new_data_path')
 
 Tables are essentially pandas DataFrames but with metadata. All operations on them occur in-memory, except for loading from and saving to disk. On disk, they are represented by tabular file (feather or CSV) and a JSON metadata file.
 
+Columns of `Table` have attribute `VariableMeta`, including their type, description, and unit. Be carful when manipulating them, not all operations are currently supported. Supported are: adding a column, renaming columns. Not supported: direct assignment to `t.columns = ...` or to index names `t.columns.index = ...`.
+
 #### Make a new table
 
 ```python
@@ -193,6 +195,7 @@ t = Table.read_csv('/tmp/my_table.csv')
   - Add flag `is_public` for public/private datasets
   - Enforce snake_case for table, dataset and variable short names
   - Add fields `published_by` and `published_at` to Source
+  - Added a list of supported and unsupported operations on columns
 - `v0.2.5`
   - Fix ability to load remote CSV tables
 - `v0.2.4`

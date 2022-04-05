@@ -59,7 +59,7 @@ def underscore_table(t: Table) -> Table:
     t = t.rename(columns=underscore)
 
     t.index.names = [underscore(e) for e in t.index.names]
-    t.metadata.primary_key = t.index.names  # type: ignore
+    t.metadata.primary_key = t.index.names
     return t
 
 
