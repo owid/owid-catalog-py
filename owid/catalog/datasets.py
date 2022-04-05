@@ -51,8 +51,10 @@ class Dataset:
 
         mkdir(path)
 
+        metadata = metadata or DatasetMeta()
+
         index_file = path / "index.json"
-        DatasetMeta().save(index_file)
+        metadata.save(index_file)
 
         return Dataset(path.as_posix())
 
