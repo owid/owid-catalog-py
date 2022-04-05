@@ -14,6 +14,10 @@ from . import variables
 from .meta import VariableMeta, TableMeta
 from .frames import repack_frame
 
+from pandas.util._decorators import (
+    rewrite_axis_style_signature,
+)
+
 SCHEMA = json.load(open(join(dirname(__file__), "schemas", "table.json")))
 METADATA_FIELDS = list(SCHEMA["properties"])
 
@@ -226,6 +230,28 @@ class Table(pd.DataFrame):
             and self.metadata == rhs.metadata
             and self.to_dict() == rhs.to_dict()
         )
+
+    @rewrite_axis_style_signature(
+        "mapper",
+        [("copy", True), ("inplace", False), ("level", None), ("errors", "ignore")],
+    )
+    def rename(self, *args, **kwargs) -> Optional["Table"]:
+        """Rename columns while keeping their metadata."""
+        old_cols = self.columns
+        new_table = super().rename(*args, **kwargs)
+
+        if kwargs.get("inplace"):
+            new_table = self
+
+        # rename metadata for changed columns
+        for old_col, new_col in zip(old_cols, new_table.columns):
+            if old_col != new_col:
+                new_table._fields[new_col] = new_table._fields.pop(old_col)
+
+        if kwargs.get("inplace"):
+            return None
+        else:
+            return cast(Table, new_table)
 
     @property
     def all_columns(self) -> List[str]:
