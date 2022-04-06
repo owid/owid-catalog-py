@@ -38,6 +38,11 @@ def test_create_empty():
         assert doc == {"is_public": True}
 
 
+def test_create_empty_with_metadata(tmpdir):
+    ds = Dataset.create_empty(tmpdir / "dataset", DatasetMeta(namespace="test"))
+    assert ds.metadata.namespace == "test"
+
+
 def test_create_fails_if_non_dataset_dir_exists():
     with temp_dataset_dir(create=True) as dirname:
         with pytest.raises(Exception):

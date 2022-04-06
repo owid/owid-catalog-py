@@ -254,3 +254,26 @@ def test_load_csv_table_over_http() -> None:
     Table.read_csv(
         "http://owid-catalog.nyc3.digitaloceanspaces.com/reference/countries_regions.csv"
     )
+
+
+def test_rename_columns() -> None:
+    t: Table = Table({"gdp": [100, 102, 104], "country": ["AU", "SE", "CH"]}).set_index(
+        "country"
+    )  # type: ignore
+    t.gdp.metadata.title = "GDP"
+    new_t = t.rename(columns={"gdp": "new_gdp"})
+    assert new_t.new_gdp.metadata.title == "GDP"
+    assert new_t.columns == ["new_gdp"]
+
+    # old table hasn't changed
+    assert t.gdp.metadata.title == "GDP"
+
+
+def test_rename_columns_inplace() -> None:
+    t: Table = Table({"gdp": [100, 102, 104], "country": ["AU", "SE", "CH"]}).set_index(
+        "country"
+    )  # type: ignore
+    t.gdp.metadata.title = "GDP"
+    t.rename(columns={"gdp": "new_gdp"}, inplace=True)
+    assert t.new_gdp.metadata.title == "GDP"
+    assert t.columns == ["new_gdp"]

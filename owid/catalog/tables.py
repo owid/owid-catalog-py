@@ -4,6 +4,7 @@
 
 from os.path import join, dirname, splitext
 import json
+import copy
 from typing import Any, Literal, Optional, List, Dict, Union, cast
 from collections import defaultdict
 
@@ -13,6 +14,10 @@ import requests
 from . import variables
 from .meta import VariableMeta, TableMeta
 from .frames import repack_frame
+
+from pandas.util._decorators import (
+    rewrite_axis_style_signature,
+)
 
 SCHEMA = json.load(open(join(dirname(__file__), "schemas", "table.json")))
 METADATA_FIELDS = list(SCHEMA["properties"])
@@ -95,7 +100,7 @@ class Table(pd.DataFrame):
 
         if repack:
             # use smaller data types wherever possible
-            repack_frame(df)
+            df = repack_frame(df)
 
         df.to_feather(path, compression=compression, **kwargs)
 
@@ -226,6 +231,34 @@ class Table(pd.DataFrame):
             and self.metadata == rhs.metadata
             and self.to_dict() == rhs.to_dict()
         )
+
+    @rewrite_axis_style_signature(
+        "mapper",
+        [("copy", True), ("inplace", False), ("level", None), ("errors", "ignore")],
+    )
+    def rename(self, *args: Any, **kwargs: Any) -> Optional["Table"]:
+        """Rename columns while keeping their metadata."""
+        inplace = kwargs.get("inplace")
+        old_cols = self.all_columns
+        new_table = super().rename(*args, **kwargs)
+
+        if inplace:
+            new_table = self
+
+        # construct new _fields attribute
+        fields = {
+            new_col: self._fields[old_col] if inplace
+            # avoid deepcopy if inplace to make it faster
+            else copy.deepcopy(self._fields[old_col])
+            for old_col, new_col in zip(old_cols, new_table.all_columns)
+        }
+
+        new_table._fields = defaultdict(VariableMeta, fields)
+
+        if inplace:
+            return None
+        else:
+            return cast(Table, new_table)
 
     @property
     def all_columns(self) -> List[str]:
