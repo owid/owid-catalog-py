@@ -13,11 +13,18 @@ def underscore(name: Optional[str], validate: bool = True) -> Optional[str]:
     if name is None:
         return None
 
+    orig_name = name
+
     name = (
         name.replace(" ", "_")
         .replace("-", "_")
+        .replace("—", "_")
+        .replace("–", "_")
         .replace(",", "_")
         .replace(".", "_")
+        .replace("\t", "_")
+        .replace("?", "_")
+        .replace('"', "")
         .lower()
     )
 
@@ -34,6 +41,8 @@ def underscore(name: Optional[str], validate: bool = True) -> Optional[str]:
     name = name.replace("us$", "usd")
     name = name.replace("$", "dollar")
     name = name.replace("&", "_and_")
+    name = name.replace("<", "_lt_")
+    name = name.replace(">", "_gt_")
 
     # replace quotes
     name = name.replace("'", "")
@@ -47,9 +56,13 @@ def underscore(name: Optional[str], validate: bool = True) -> Optional[str]:
     # strip leading and trailing underscores
     name = name.strip("_")
 
+    # if the first letter is number, prefix it with underscore
+    if re.match("^[0-9]", name):
+        name = f"_{name}"
+
     # make sure it's under_score now, if not then raise NameError
     if validate:
-        validate_underscore(name, "Name")
+        validate_underscore(name, f"`{orig_name}`")
 
     return name
 
@@ -65,7 +78,7 @@ def underscore_table(t: Table) -> Table:
 
 def validate_underscore(name: Optional[str], object_name: str) -> None:
     """Raise error if name is not snake_case."""
-    if name is not None and not re.match("^[a-z][a-z0-9_]*$", name):
+    if name is not None and not re.match("^[a-z_][a-z0-9_]*$", name):
         raise NameError(
             f"{object_name} must be snake_case. Change `{name}` to `{underscore(name, validate=False)}`"
         )
