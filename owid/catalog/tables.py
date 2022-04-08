@@ -5,8 +5,10 @@
 from os.path import join, dirname, splitext
 import json
 import copy
+import yaml
 from typing import Any, Literal, Optional, List, Dict, Union, cast
 from collections import defaultdict
+from pathlib import Path
 
 import pandas as pd
 import requests
@@ -265,3 +267,24 @@ class Table(pd.DataFrame):
         "Return names of all columns in the dataset, including the index."
         combined: List[str] = filter(None, list(self.index.names) + list(self.columns))  # type: ignore
         return combined
+
+    def update_metadata_from_yaml(
+        self, path: Union[Path, str], table_name: str
+    ) -> None:
+        """Update metadata of table and variables from a YAML file."""
+        with open(path) as istream:
+            annot = yaml.safe_load(istream)
+
+        self.metadata.short_name = table_name
+
+        t_annot = annot["tables"][table_name]
+
+        # update variables
+        for v_short_name, v_annot in t_annot["variables"].items():
+            for k, v in v_annot.items():
+                setattr(self[v_short_name].metadata, k, v)
+
+        # update table attributes
+        for k, v in t_annot.items():
+            if k != "variables":
+                setattr(self.metadata, k, v)
