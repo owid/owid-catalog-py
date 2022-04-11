@@ -6,7 +6,7 @@ from os.path import join, exists
 from os import mkdir
 from dataclasses import dataclass
 import shutil
-from typing import Any, Iterator, List, Literal, Optional, Union
+from typing import Any, Iterator, List, Optional, Union
 from glob import glob
 import hashlib
 from pathlib import Path
@@ -19,6 +19,10 @@ from .properties import metadata_property
 from .meta import DatasetMeta, TableMeta
 from . import utils
 
+try:
+     from typing import Literal
+except ImportError:
+     from typing_extensions import Literal
 
 @dataclass
 class Dataset:

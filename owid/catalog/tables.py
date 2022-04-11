@@ -6,7 +6,7 @@ from os.path import join, dirname, splitext
 import json
 import copy
 import yaml
-from typing import Any, Literal, Optional, List, Dict, Union, cast
+from typing import Any, Optional, List, Dict, Union, cast
 from collections import defaultdict
 from pathlib import Path
 
@@ -20,6 +20,12 @@ from .frames import repack_frame
 from pandas.util._decorators import (
     rewrite_axis_style_signature,
 )
+
+try:
+     from typing import Literal
+except ImportError:
+     from typing_extensions import Literal
+
 
 SCHEMA = json.load(open(join(dirname(__file__), "schemas", "table.json")))
 METADATA_FIELDS = list(SCHEMA["properties"])
