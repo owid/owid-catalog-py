@@ -24,7 +24,7 @@ df = catalog.find('covid', namespace='owid').load()
 
 ## Development
 
-You need Python 3.9+, `poetry` and `make` installed. Clone the repo, then you can simply run:
+You need Python 3.8+, `poetry` and `make` installed. Clone the repo, then you can simply run:
 
 ```
 # run all unit tests and CI checks
