@@ -97,7 +97,7 @@ def validate_underscore(name: Optional[str], object_name: str) -> None:
 
 def concat_variables(variables: List[Variable]) -> Table:
     """Concatenate variables into a single table keeping all metadata."""
-    df = pd.concat(variables, axis=1)
+    t = Table(pd.concat(variables, axis=1))
     for v in variables:
-        df._fields[v.name] = v.metadata
-    return Table(df)
+        t._fields[v.name] = v.metadata
+    return t
