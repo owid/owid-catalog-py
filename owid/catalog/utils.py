@@ -1,8 +1,10 @@
 import re
-from typing import Optional
+from typing import Optional, List
 from unidecode import unidecode
+import pandas as pd
 
 from .tables import Table
+from .variables import Variable
 
 
 def underscore(name: Optional[str], validate: bool = True) -> Optional[str]:
@@ -25,12 +27,21 @@ def underscore(name: Optional[str], validate: bool = True) -> Optional[str]:
         .replace("\t", "_")
         .replace("?", "_")
         .replace('"', "")
+        .replace("\xa0", "_")
+        .replace("’", "")
+        .replace("`", "")
+        .replace("−", "_")
         .lower()
     )
 
     # replace special separators
     name = (
-        name.replace("(", "__").replace(")", "__").replace(":", "__").replace(";", "__")
+        name.replace("(", "__")
+        .replace(")", "__")
+        .replace(":", "__")
+        .replace(";", "__")
+        .replace("[", "__")
+        .replace("]", "__")
     )
 
     # replace special symbols
@@ -82,3 +93,11 @@ def validate_underscore(name: Optional[str], object_name: str) -> None:
         raise NameError(
             f"{object_name} must be snake_case. Change `{name}` to `{underscore(name, validate=False)}`"
         )
+
+
+def concat_variables(variables: List[Variable]) -> Table:
+    """Concatenate variables into a single table keeping all metadata."""
+    df = pd.concat(variables, axis=1)
+    for v in variables:
+        df._fields[v.name] = v.metadata
+    return Table(df)

@@ -5,6 +5,13 @@ from owid.catalog.utils import underscore, underscore_table
 
 def test_underscore():
 
+    assert (
+        underscore(
+            "`17.11.1 - Developing countries’ and least developed countries’ share of global merchandise exports (%) - TX_EXP_GBMRCH`"
+        )
+        == "_17_11_1__developing_countries_and_least_developed_countries_share_of_global_merchandise_exports__pct__tx_exp_gbmrch"
+    )
+
     assert underscore("Urban population") == "urban_population"
     assert (
         underscore("Urban population (% of total population)")

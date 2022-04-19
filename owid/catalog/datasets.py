@@ -117,7 +117,7 @@ class Dataset:
             table_meta["dataset"] = dataset_meta
 
             with open(metadata_file, "w") as ostream:
-                json.dump(table_meta, ostream, indent=2)
+                json.dump(table_meta, ostream, indent=2, default=str)
 
     def index(self, catalog_path: Path) -> pd.DataFrame:
         """
