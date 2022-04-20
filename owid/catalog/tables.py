@@ -102,6 +102,7 @@ class Table(pd.DataFrame):
 
         if repack:
             # use smaller data types wherever possible
+            # NOTE: this can be slow for large dataframes
             df = repack_frame(df)
 
         df.to_feather(path, compression=compression, **kwargs)

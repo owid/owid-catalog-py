@@ -143,7 +143,9 @@ class Dataset:
             row["dimensions"] = json.dumps(metadata.primary_key)
 
             table_path = Path(self.path) / metadata.short_name
-            row["path"] = table_path.relative_to(catalog_path).as_posix()
+            relative_path = table_path.relative_to(catalog_path)
+            row["path"] = relative_path.as_posix()
+            row["channel"] = relative_path.parts[0]
 
             if table_path.with_suffix(".feather").exists():
                 row["format"] = "feather"

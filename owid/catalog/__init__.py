@@ -1,6 +1,6 @@
 __version__ = "0.1.0"
 
-from .catalogs import LocalCatalog, RemoteCatalog, find, find_one
+from .catalogs import LocalCatalog, RemoteCatalog, find, find_one, CHANNEL
 from .datasets import Dataset
 from . import utils
 from .tables import Table
@@ -21,4 +21,5 @@ __all__ = [
     "Source",
     "License",
     "utils",
+    "CHANNEL",
 ]

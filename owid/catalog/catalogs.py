@@ -4,7 +4,7 @@
 #
 
 from pathlib import Path
-from typing import Dict, Optional, Iterator, Union, Any, cast
+from typing import Dict, Optional, Iterator, Union, Any, cast, Literal, Iterable
 import json
 import os
 import heapq
@@ -13,12 +13,15 @@ import pandas as pd
 import numpy as np
 import requests
 import tempfile
+import structlog
 from urllib.parse import urlparse
 import numpy.typing as npt
 
 from .datasets import Dataset
 from .tables import Table
 from . import s3_utils
+
+log = structlog.get_logger()
 
 # increment this on breaking changes to require clients to update
 OWID_CATALOG_VERSION = 1
@@ -32,12 +35,16 @@ S3_OWID_URI = "s3://owid-catalog"
 # global copy cached after first request
 REMOTE_CATALOG: Optional["RemoteCatalog"] = None
 
+# available channels in the catalog
+CHANNEL = Literal["garden", "meadow", "backport", "open_numbers", "examples"]
+
 
 class CatalogMixin:
     """
     Abstract data catalog API, encapsulates finding and loading data.
     """
 
+    channels: Iterable[CHANNEL]
     frame: "CatalogFrame"
 
     def find(
@@ -45,6 +52,7 @@ class CatalogMixin:
         table: Optional[str] = None,
         namespace: Optional[str] = None,
         dataset: Optional[str] = None,
+        channel: Optional[str] = "garden",
     ) -> "CatalogFrame":
         criteria: npt.ArrayLike = np.ones(len(self.frame), dtype=bool)
 
@@ -56,6 +64,9 @@ class CatalogMixin:
 
         if dataset:
             criteria &= self.frame.dataset == dataset
+
+        if channel:
+            criteria &= self.frame.channel == channel
 
         matches = self.frame[criteria]
         if "checksum" in matches.columns:
@@ -75,13 +86,14 @@ class LocalCatalog(CatalogMixin):
     """
 
     path: Path
-    frame: "CatalogFrame"
 
-    def __init__(self, path: Union[str, Path]) -> None:
+    def __init__(
+        self, path: Union[str, Path], channels: Iterable[CHANNEL] = ("garden",)
+    ) -> None:
         self.path = Path(path)
-        if self._catalog_file.exists():
-            df = pd.read_feather(self._catalog_file.as_posix())
-            self.frame = CatalogFrame(df)
+        self.channels = channels
+        if self._catalog_exists(channels):
+            self.frame = CatalogFrame(self._read_channels(channels))
             self.frame._base_uri = self.path.as_posix() + "/"
         else:
             # could take a while to generate if there are many datasets
@@ -89,16 +101,34 @@ class LocalCatalog(CatalogMixin):
 
         # ensure the frame knows where to load data from
 
-    @property
-    def _catalog_file(self) -> Path:
-        return self.path / "catalog.feather"
+    def _catalog_exists(self, channels: Iterable[CHANNEL]) -> bool:
+        return all(
+            [self._catalog_channel_file(channel).exists() for channel in channels]
+        )
+
+    def _catalog_channel_file(self, channel: CHANNEL) -> Path:
+        return self.path / f"catalog-{channel}.feather"
 
     @property
     def _metadata_file(self) -> Path:
         return self.path / "catalog.meta.json"
 
-    def iter_datasets(self) -> Iterator[Dataset]:
-        to_search = [self.path]
+    def _read_channels(self, channels: Iterable[CHANNEL]) -> pd.DataFrame:
+        """
+        Read selected channels from local path.
+        """
+        return cast(
+            pd.DataFrame,
+            pd.concat(
+                [
+                    pd.read_feather(self._catalog_channel_file(channel))
+                    for channel in channels
+                ]
+            ),
+        )
+
+    def iter_datasets(self, channel: CHANNEL) -> Iterator[Dataset]:
+        to_search = [self.path / channel]
         while to_search:
             dir = heapq.heappop(to_search)
             if (dir / "index.json").exists():
@@ -112,21 +142,29 @@ class LocalCatalog(CatalogMixin):
     def reindex(self) -> None:
         self._save_metadata({"format_version": OWID_CATALOG_VERSION})
 
-        # walk the directory tree, generate a namespace/version/dataset/table frame
+        # walk the directory tree, generate a channel/namespace/version/dataset/table frame
         # save it to feather
         frames = []
-        for ds in self.iter_datasets():
-            frames.append(ds.index(self.path))
+        log.info("reindex.start", channels=self.channels)
+        for channel in self.channels:
+            channel_frames = []
+            for ds in self.iter_datasets(channel):
+                channel_frames.append(ds.index(self.path))
+            frames += channel_frames
+            log.info("reindex", channel=channel, datasets=len(channel_frames))
 
         df = pd.concat(frames, ignore_index=True)
 
-        keys = ["table", "dataset", "version", "namespace", "is_public"]
+        keys = ["table", "dataset", "version", "namespace", "channel", "is_public"]
         columns = keys + [c for c in df.columns if c not in keys]
 
         df.sort_values(keys, inplace=True)
         df = df[columns]
         df.reset_index(drop=True, inplace=True)
-        df.to_feather(self._catalog_file)
+
+        # save all channels to disk in separate files
+        for channel in self.channels:
+            df[df.channel == channel].to_feather(self._catalog_channel_file(channel))
 
         self.frame = CatalogFrame(df)
         self.frame._base_uri = self.path.as_posix() + "/"
@@ -138,10 +176,12 @@ class LocalCatalog(CatalogMixin):
 
 class RemoteCatalog(CatalogMixin):
     uri: str
-    frame: "CatalogFrame"
 
-    def __init__(self, uri: str = OWID_CATALOG_URI) -> None:
+    def __init__(
+        self, uri: str = OWID_CATALOG_URI, channels: Iterable[CHANNEL] = ("garden",)
+    ) -> None:
         self.uri = uri
+        self.channels = channels
         self.metadata = self._read_metadata(self.uri + "catalog.meta.json")
         if self.metadata["format_version"] > OWID_CATALOG_VERSION:
             raise PackageUpdateRequired(
@@ -150,7 +190,7 @@ class RemoteCatalog(CatalogMixin):
                 "-- please update"
             )
 
-        self.frame = CatalogFrame(pd.read_feather(self.uri + "catalog.feather"))
+        self.frame = CatalogFrame(self._read_channels(uri, channels))
         self.frame._base_uri = uri
 
     @property
@@ -165,6 +205,21 @@ class RemoteCatalog(CatalogMixin):
         resp = requests.get(uri)
         resp.raise_for_status()
         return cast(Dict[str, Any], resp.json())
+
+    @staticmethod
+    def _read_channels(uri: str, channels: Iterable[CHANNEL]) -> pd.DataFrame:
+        """
+        Read selected channels from S3.
+        """
+        return cast(
+            pd.DataFrame,
+            pd.concat(
+                [
+                    pd.read_feather(uri + f"catalog-{channel}.feather")
+                    for channel in channels
+                ]
+            ),
+        )
 
 
 class CatalogFrame(pd.DataFrame):
@@ -241,13 +296,16 @@ def find(
     table: Optional[str] = None,
     namespace: Optional[str] = None,
     dataset: Optional[str] = None,
+    channel: Optional[str] = "garden",
 ) -> "CatalogFrame":
     global REMOTE_CATALOG
 
     if not REMOTE_CATALOG:
         REMOTE_CATALOG = RemoteCatalog()
 
-    return REMOTE_CATALOG.find(table=table, namespace=namespace, dataset=dataset)
+    return REMOTE_CATALOG.find(
+        table=table, namespace=namespace, dataset=dataset, channel=channel
+    )
 
 
 def find_one(*args: Optional[str], **kwargs: Optional[str]) -> Table:
