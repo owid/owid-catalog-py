@@ -2,6 +2,7 @@
 #  test_frames.py
 #
 
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -78,7 +79,7 @@ def test_repack_uint64():
 
 def test_repack_int8_boundaries():
     s = pd.Series([0, -1])
-    info = np.iinfo(np.int8)
+    info: Any = np.iinfo(np.int8)
 
     # check the lower boundary
     s[0] = info.min
@@ -95,7 +96,7 @@ def test_repack_int8_boundaries():
 
 def test_repack_int16_boundaries():
     s = pd.Series([0, -1])
-    info = np.iinfo(np.int16)
+    info: Any = np.iinfo(np.int16)
 
     # check the lower boundary
     s[0] = info.min
@@ -112,7 +113,7 @@ def test_repack_int16_boundaries():
 
 def test_repack_int32_boundaries():
     s = pd.Series([0, -1])
-    info = np.iinfo(np.int32)
+    info: Any = np.iinfo(np.int32)
 
     # check the lower boundary
     s[0] = info.min
@@ -130,7 +131,7 @@ def test_repack_int32_boundaries():
 def test_repack_uint_boundaries():
     s = pd.Series([0])
     # uint8
-    info = np.iinfo(np.uint8)
+    info: Any = np.iinfo(np.uint8)
     s[0] = info.max
     assert frames.repack_series(s).dtypes.name == "uint8"
 
@@ -138,16 +139,16 @@ def test_repack_uint_boundaries():
     assert frames.repack_series(s).dtypes.name == "uint16"
 
     # uint16
-    info = np.iinfo(np.uint16)
-    s[0] = info.max
+    info2: Any = np.iinfo(np.uint16)
+    s[0] = info2.max
     assert frames.repack_series(s).dtypes.name == "uint16"
 
     s[0] += 1
     assert frames.repack_series(s).dtypes.name == "uint32"
 
     # uint32
-    info = np.iinfo(np.uint32)
-    s[0] = info.max
+    info3: Any = np.iinfo(np.uint32)
+    s[0] = info3.max
     assert frames.repack_series(s).dtypes.name == "uint32"
 
     # we don't bother using uint64, we just use int64

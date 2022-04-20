@@ -197,7 +197,7 @@ class Dataset:
         return _hash.hexdigest()
 
 
-for k in DatasetMeta.__dataclass_fields__:  # type: ignore
+for k in DatasetMeta.__dataclass_fields__:
     if hasattr(Dataset, k):
         raise Exception(f'metadata field "{k}" would overwrite a Dataset built-in')
 
@@ -206,7 +206,7 @@ for k in DatasetMeta.__dataclass_fields__:  # type: ignore
 
 def checksum_file(filename: str) -> Any:
     "Return the MD5 checksum of a given file."
-    chunk_size = 2 ** 20  # 1MB
+    chunk_size = 2**20  # 1MB
     checksum = hashlib.md5()
     with open(filename, "rb") as istream:
         chunk = istream.read(chunk_size)
