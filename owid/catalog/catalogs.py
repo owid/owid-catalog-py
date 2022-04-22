@@ -14,6 +14,7 @@ import numpy as np
 import requests
 import tempfile
 from urllib.parse import urlparse
+import numpy.typing as npt
 
 from .datasets import Dataset
 from .tables import Table
@@ -45,7 +46,7 @@ class CatalogMixin:
         namespace: Optional[str] = None,
         dataset: Optional[str] = None,
     ) -> "CatalogFrame":
-        criteria = np.ones(len(self.frame), dtype=bool)
+        criteria: npt.ArrayLike = np.ones(len(self.frame), dtype=bool)
 
         if table:
             criteria &= self.frame.table.apply(lambda t: table in t)

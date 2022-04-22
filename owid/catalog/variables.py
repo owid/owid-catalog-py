@@ -87,7 +87,7 @@ class Variable(pd.Series):
 
 
 # dynamically add all metadata properties to the class
-for k in VariableMeta.__dataclass_fields__:  # type: ignore
+for k in VariableMeta.__dataclass_fields__:
     if hasattr(Variable, k):
         raise Exception(f'metadata field "{k}" would overwrite a Pandas built-in')
 

@@ -1,6 +1,6 @@
 ![build status](https://github.com/owid/owid-catalog-py/actions/workflows/python-package.yml/badge.svg)
 [![PyPI version](https://badge.fury.io/py/owid-catalog.svg)](https://badge.fury.io/py/owid-catalog)
-![](https://img.shields.io/badge/python-3.8%20%7C%203.9-blue.svg)
+![](https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10-blue.svg)
 
 # owid-catalog
 
@@ -191,11 +191,12 @@ t = Table.read_csv('/tmp/my_table.csv')
 
 ## Changelog
 
-- `master`
+- `v0.2.6`
   - Add flag `is_public` for public/private datasets
   - Enforce snake_case for table, dataset and variable short names
   - Add fields `published_by` and `published_at` to Source
   - Added a list of supported and unsupported operations on columns
+  - Updated `pyarrow`
 - `v0.2.5`
   - Fix ability to load remote CSV tables
 - `v0.2.4`
