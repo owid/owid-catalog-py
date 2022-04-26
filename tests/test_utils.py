@@ -83,6 +83,7 @@ def test_underscore():
         underscore("Poverty rate (<50% of median) (LIS Key Figures, 2018)")
         == "poverty_rate__lt_50pct_of_median__lis_key_figures__2018"
     )
+    assert underscore("10") == "_10"
 
 
 def test_underscore_table():

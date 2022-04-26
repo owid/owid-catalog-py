@@ -84,6 +84,7 @@ def underscore_table(t: Table) -> Table:
 
     t.index.names = [underscore(e) for e in t.index.names]
     t.metadata.primary_key = t.primary_key
+    t.metadata.short_name = underscore(t.metadata.short_name)
     return t
 
 
