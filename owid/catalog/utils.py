@@ -99,5 +99,6 @@ def concat_variables(variables: List[Variable]) -> Table:
     """Concatenate variables into a single table keeping all metadata."""
     t = Table(pd.concat(variables, axis=1))
     for v in variables:
-        t._fields[v.name] = v.metadata
+        if v.name:
+            t._fields[v.name] = v.metadata
     return t
