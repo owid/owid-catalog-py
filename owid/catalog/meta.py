@@ -118,7 +118,7 @@ class DatasetMeta:
     def save(self, filename: Union[str, Path]) -> None:
         filename = Path(filename).as_posix()
         with open(filename, "w") as ostream:
-            json.dump(self.to_dict(), ostream, indent=2)
+            json.dump(self.to_dict(), ostream, indent=2, default=str)
 
     @classmethod
     def load(cls, filename: str) -> "DatasetMeta":

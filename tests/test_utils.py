@@ -5,6 +5,13 @@ from owid.catalog.utils import underscore, underscore_table
 
 def test_underscore():
 
+    assert (
+        underscore(
+            "`17.11.1 - Developing countries’ and least developed countries’ share of global merchandise exports (%) - TX_EXP_GBMRCH`"
+        )
+        == "_17_11_1__developing_countries_and_least_developed_countries_share_of_global_merchandise_exports__pct__tx_exp_gbmrch"
+    )
+
     assert underscore("Urban population") == "urban_population"
     assert (
         underscore("Urban population (% of total population)")
@@ -58,6 +65,25 @@ def test_underscore():
         underscore("Firms that spend on R&D (% of firms)")
         == "firms_that_spend_on_r_and_d__pct_of_firms"
     )
+    assert (
+        underscore(
+            "Wages in the manufacturing sector vs. several food prices in the US – U.S. Bureau of Labor Statistics (2013)"
+        )
+        == "wages_in_the_manufacturing_sector_vs__several_food_prices_in_the_us__u_s__bureau_of_labor_statistics__2013"
+    )
+    assert (
+        underscore('Tax "composition" –\tArroyo Abad  and P. Lindert (2016)')
+        == "tax_composition__arroyo_abad__and_p__lindert__2016"
+    )
+    assert (
+        underscore("20th century deaths in US - CDC")
+        == "_20th_century_deaths_in_us__cdc"
+    )
+    assert (
+        underscore("Poverty rate (<50% of median) (LIS Key Figures, 2018)")
+        == "poverty_rate__lt_50pct_of_median__lis_key_figures__2018"
+    )
+    assert underscore("10") == "_10"
 
 
 def test_underscore_table():

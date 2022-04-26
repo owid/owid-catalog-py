@@ -6,6 +6,7 @@ from os.path import join, exists
 from os import mkdir
 from dataclasses import dataclass
 import shutil
+import warnings
 from typing import Any, Iterator, List, Literal, Optional, Union
 from glob import glob
 import hashlib
@@ -99,6 +100,9 @@ class Dataset:
     def save(self) -> None:
         utils.validate_underscore(self.metadata.short_name, "Dataset's short_name")
 
+        if not self.metadata.namespace:
+            warnings.warn(f"Dataset {self.metadata.short_name} is missing namespace")
+
         self.metadata.save(self._index_file)
         self._update_table_metadata()
 
@@ -113,7 +117,7 @@ class Dataset:
             table_meta["dataset"] = dataset_meta
 
             with open(metadata_file, "w") as ostream:
-                json.dump(table_meta, ostream, indent=2)
+                json.dump(table_meta, ostream, indent=2, default=str)
 
     def index(self, catalog_path: Path) -> pd.DataFrame:
         """
