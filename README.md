@@ -191,6 +191,8 @@ t = Table.read_csv('/tmp/my_table.csv')
 
 ## Changelog
 
+- `v0.2.7`
+  - Split datasets into channels (`garden`, `meadow`, `open_numbers`, ...) and make garden default one
 - `v0.2.6`
   - Add flag `is_public` for public/private datasets
   - Enforce snake_case for table, dataset and variable short names
