@@ -3,13 +3,13 @@
 #
 
 import tempfile
-from typing import Optional, Iterator
+from typing import Optional, Iterator, Iterable
 from contextlib import contextmanager
 from pathlib import Path
 
 import pytest  # noqa
 
-from owid.catalog import RemoteCatalog, LocalCatalog, Table
+from owid.catalog import RemoteCatalog, LocalCatalog, Table, CHANNEL
 
 from .test_datasets import create_temp_dataset
 
@@ -41,6 +41,11 @@ def test_remote_find_one():
     assert isinstance(t, Table)
 
 
+def test_remote_default_channel():
+    c = load_catalog()
+    assert set(c.frame.channel) == {"garden"}
+
+
 def test_find_from_local_catalog():
     with mock_catalog(3) as catalog:
         matches = catalog.find()
@@ -52,10 +57,19 @@ def test_load_from_local_catalog():
         catalog.find().iloc[0].load()
 
 
+def test_local_default_channel():
+    with mock_catalog(1, channels=("garden", "meadow")) as catalog:
+        assert set(catalog.find().channel) == {"garden"}
+
+
 @contextmanager
-def mock_catalog(n: int = 3) -> Iterator[LocalCatalog]:
+def mock_catalog(
+    n: int = 3, channels: Iterable[CHANNEL] = ("garden",)
+) -> Iterator[LocalCatalog]:
     with tempfile.TemporaryDirectory() as dirname:
         path = Path(dirname)
-        for i in range(n):
-            create_temp_dataset(path / f"dataset{i}")
+        for channel in channels:
+            (path / channel).mkdir()
+            for i in range(n):
+                create_temp_dataset(path / channel / f"dataset{i}")
         yield LocalCatalog(path)
