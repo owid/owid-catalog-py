@@ -77,6 +77,17 @@ class CatalogMixin:
     def find_one(self, *args: Optional[str], **kwargs: Optional[str]) -> Table:
         return self.find(*args, **kwargs).load()
 
+    def find_latest(
+        self,
+        *args: Optional[str],
+        **kwargs: Optional[str],
+    ) -> Table:
+        frame = self.find(*args, **kwargs)
+        if frame.empty:
+            return frame.load()
+        else:
+            return cast(Table, frame.sort_values("version").iloc[-1].load())
+
 
 class LocalCatalog(CatalogMixin):
     """
