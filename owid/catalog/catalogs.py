@@ -160,11 +160,12 @@ class LocalCatalog(CatalogMixin):
 
         df.sort_values(keys, inplace=True)
         df = df[columns]
-        df.reset_index(drop=True, inplace=True)
 
         # save all channels to disk in separate files
         for channel in self.channels:
-            df[df.channel == channel].to_feather(self._catalog_channel_file(channel))
+            df[df.channel == channel].reset_index(drop=True).to_feather(
+                self._catalog_channel_file(channel)
+            )
 
         self.frame = CatalogFrame(df)
         self.frame._base_uri = self.path.as_posix() + "/"
