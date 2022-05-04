@@ -52,7 +52,7 @@ class CatalogMixin:
         table: Optional[str] = None,
         namespace: Optional[str] = None,
         dataset: Optional[str] = None,
-        channel: Optional[str] = "garden",
+        channel: CHANNEL = "garden",
     ) -> "CatalogFrame":
         criteria: npt.ArrayLike = np.ones(len(self.frame), dtype=bool)
 
@@ -66,6 +66,10 @@ class CatalogMixin:
             criteria &= self.frame.dataset == dataset
 
         if channel:
+            if channel not in self.channels:
+                raise ValueError(
+                    f"You need to add `{channel}` to channels in Catalog init (only `{self.channels}` are loaded now)"
+                )
             criteria &= self.frame.channel == channel
 
         matches = self.frame[criteria]
@@ -75,16 +79,16 @@ class CatalogMixin:
         return cast(CatalogFrame, matches)
 
     def find_one(self, *args: Optional[str], **kwargs: Optional[str]) -> Table:
-        return self.find(*args, **kwargs).load()
+        return self.find(*args, **kwargs).load()  # type: ignore
 
     def find_latest(
         self,
         *args: Optional[str],
         **kwargs: Optional[str],
     ) -> Table:
-        frame = self.find(*args, **kwargs)
+        frame = self.find(*args, **kwargs)  # type: ignore
         if frame.empty:
-            return frame.load()
+            raise ValueError("No matching table found")
         else:
             return cast(Table, frame.sort_values("version").iloc[-1].load())
 
@@ -308,12 +312,18 @@ def find(
     table: Optional[str] = None,
     namespace: Optional[str] = None,
     dataset: Optional[str] = None,
-    channel: Optional[str] = "garden",
+    channel: CHANNEL = "garden",
 ) -> "CatalogFrame":
     global REMOTE_CATALOG
 
+    # add channel if missing and reinit remote catalog
+    if REMOTE_CATALOG and channel not in REMOTE_CATALOG.channels:
+        REMOTE_CATALOG = RemoteCatalog(
+            channels=list(REMOTE_CATALOG.channels) + [channel]
+        )
+
     if not REMOTE_CATALOG:
-        REMOTE_CATALOG = RemoteCatalog()
+        REMOTE_CATALOG = RemoteCatalog(channels=[channel])
 
     return REMOTE_CATALOG.find(
         table=table, namespace=namespace, dataset=dataset, channel=channel
@@ -321,7 +331,7 @@ def find(
 
 
 def find_one(*args: Optional[str], **kwargs: Optional[str]) -> Table:
-    return find(*args, **kwargs).load()
+    return find(*args, **kwargs).load()  # type: ignore
 
 
 def _download_private_file(uri: str, tmpdir: str) -> str:

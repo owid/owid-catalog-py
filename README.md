@@ -20,6 +20,9 @@ catalog.find('covid')
 
 # load Covid-19 data from the Our World In Data namespace as a data frame
 df = catalog.find('covid', namespace='owid').load()
+
+# load data from other than the default `garden` channel
+df = catalog.find('bp__energy', channel='open_numbers').load()
 ```
 
 ## Development
@@ -51,6 +54,9 @@ matches = cat.find('population')
 
 # fetch a data frame for a specific match over HTTPS
 t = cat.find_one('population', namespace='gapminder')
+
+# load other channels than `garden`
+cat = RemoteCatalog(channels=('garden', 'meadow', 'open_numbers'))
 ```
 
 ### Datasets
