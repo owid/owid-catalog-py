@@ -200,6 +200,7 @@ t = Table.read_csv('/tmp/my_table.csv')
 - `v0.2.7`
   - Split datasets into channels (`garden`, `meadow`, `open_numbers`, ...) and make garden default one
   - Add `.find_latest` method to Catalog
+  - Update `OWID_CATALOG_VERSION` to 2
 - `v0.2.6`
   - Add flag `is_public` for public/private datasets
   - Enforce snake_case for table, dataset and variable short names

@@ -24,7 +24,7 @@ from . import s3_utils
 log = structlog.get_logger()
 
 # increment this on breaking changes to require clients to update
-OWID_CATALOG_VERSION = 1
+OWID_CATALOG_VERSION = 2
 
 # location of the default remote catalog
 OWID_CATALOG_URI = "https://catalog.ourworldindata.org/"
@@ -144,6 +144,9 @@ class LocalCatalog(CatalogMixin):
 
     def iter_datasets(self, channel: CHANNEL) -> Iterator[Dataset]:
         to_search = [self.path / channel]
+        if not to_search[0].exists():
+            return
+
         while to_search:
             dir = heapq.heappop(to_search)
             if (dir / "index.json").exists():
