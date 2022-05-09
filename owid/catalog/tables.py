@@ -5,6 +5,8 @@
 from os.path import join, dirname, splitext
 import json
 import copy
+import gzip
+import shutil
 import yaml
 from typing import Any, Literal, Optional, List, Dict, Union, cast
 from collections import defaultdict
@@ -105,6 +107,13 @@ class Table(pd.DataFrame):
             # NOTE: this can be slow for large dataframes
             df = repack_frame(df)
 
+        # Since JS doesn't support native feather compression, we write both
+        # 1) An uncompressed feather, which is then gzipped (for JS use)
+        df.to_feather(path, compression=None, **kwargs)
+        with open(path, "rb") as raw:
+            with gzip.open(path + ".gz", "wb") as gzipped:
+                shutil.copyfileobj(raw, gzipped)
+        # 2) A feather file with native compression
         df.to_feather(path, compression=compression, **kwargs)
 
         metadata_filename = splitext(path)[0] + ".meta.json"
