@@ -52,7 +52,7 @@ class CatalogMixin:
         table: Optional[str] = None,
         namespace: Optional[str] = None,
         dataset: Optional[str] = None,
-        channel: CHANNEL = "garden",
+        channel: Optional[CHANNEL] = None,
     ) -> "CatalogFrame":
         criteria: npt.ArrayLike = np.ones(len(self.frame), dtype=bool)
 
@@ -315,22 +315,20 @@ def find(
     table: Optional[str] = None,
     namespace: Optional[str] = None,
     dataset: Optional[str] = None,
-    channel: CHANNEL = "garden",
+    channels: Iterable[CHANNEL] = ("garden",),
 ) -> "CatalogFrame":
     global REMOTE_CATALOG
 
     # add channel if missing and reinit remote catalog
-    if REMOTE_CATALOG and channel not in REMOTE_CATALOG.channels:
+    if REMOTE_CATALOG and not (set(channels) <= set(REMOTE_CATALOG.channels)):
         REMOTE_CATALOG = RemoteCatalog(
-            channels=list(REMOTE_CATALOG.channels) + [channel]
+            channels=list(set(REMOTE_CATALOG.channels) | set(channels))
         )
 
     if not REMOTE_CATALOG:
-        REMOTE_CATALOG = RemoteCatalog(channels=[channel])
+        REMOTE_CATALOG = RemoteCatalog(channels=channels)
 
-    return REMOTE_CATALOG.find(
-        table=table, namespace=namespace, dataset=dataset, channel=channel
-    )
+    return REMOTE_CATALOG.find(table=table, namespace=namespace, dataset=dataset)
 
 
 def find_one(*args: Optional[str], **kwargs: Optional[str]) -> Table:

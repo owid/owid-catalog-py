@@ -22,7 +22,8 @@ catalog.find('covid')
 df = catalog.find('covid', namespace='owid').load()
 
 # load data from other than the default `garden` channel
-df = catalog.find('bp__energy', channel='open_numbers').load()
+lung_cancer_tables = catalog.find('lung_cancer_deaths_per_100000_men', channels=['open_numbers'])
+df = lung_cancer_tables.iloc[0].load()
 ```
 
 ## Development
@@ -197,6 +198,8 @@ t = Table.read_csv('/tmp/my_table.csv')
 
 ## Changelog
 
+- `v0.2.9`
+  - Allow multiple channels in `catalog.find` function
 - `v0.2.8`
   - Update `OWID_CATALOG_VERSION` to 2
 - `v0.2.7`
