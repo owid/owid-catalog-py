@@ -31,6 +31,7 @@ def underscore(name: Optional[str], validate: bool = True) -> Optional[str]:
         .replace("’", "")
         .replace("`", "")
         .replace("−", "_")
+        .replace("*", "_")
         .replace("“", "")
         .replace("”", "")
         .replace("#", "")

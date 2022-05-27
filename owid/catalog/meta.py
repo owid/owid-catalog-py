@@ -153,6 +153,7 @@ class DatasetMeta:
             # if there's an existing source, update it
             ds_sources = [s for s in self.sources if s.name == source_annot["name"]]
             if ds_sources:
+                # TODO: add `update` method to Source object instead of `setattr``
                 for k, v in source_annot.items():
                     setattr(ds_sources[0], k, v)
             # otherwise create new source
