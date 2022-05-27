@@ -59,6 +59,8 @@ def underscore(name: Optional[str], validate: bool = True) -> Optional[str]:
     name = name.replace("&", "_and_")
     name = name.replace("<", "_lt_")
     name = name.replace(">", "_gt_")
+    name = name.replace("≥", "_gte_")
+    name = name.replace("≤", "_lte_")
 
     # replace quotes
     name = name.replace("'", "")
