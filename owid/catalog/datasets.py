@@ -60,10 +60,17 @@ class Dataset:
         return Dataset(path.as_posix())
 
     def add(
-        self, table: tables.Table, format: Literal["csv", "feather"] = "feather"
+        self,
+        table: tables.Table,
+        format: Literal["csv", "feather"] = "feather",
+        repack: bool = True,
     ) -> None:
         """Add this table to the dataset by saving it in the dataset's folder. Defaults to
-        feather format but you can override this to csv by passing 'csv' for the format"""
+        feather format but you can override this to csv by passing 'csv' for the format.
+
+        :param repack: if True, try to cast column types to the smallest possible type (e.g. float64 -> float32)
+            to reduce feather file size
+        """
 
         utils.validate_underscore(table.metadata.short_name, "Table's short_name")
         for col in list(table.columns) + list(table.index.names):
@@ -77,7 +84,7 @@ class Dataset:
             raise Exception(f"Format '{format}'' is not supported")
         table_filename = join(self.path, table.metadata.checked_name + f".{format}")
         if format == "feather":
-            table.to_feather(table_filename)
+            table.to_feather(table_filename, repack=repack)
         else:
             table.to_csv(table_filename)
 

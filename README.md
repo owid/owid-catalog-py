@@ -198,6 +198,8 @@ t = Table.read_csv('/tmp/my_table.csv')
 
 ## Changelog
 
+- `master`
+  - Optional `repack` argument when adding tables to dataset
 - `v0.2.9`
   - Allow multiple channels in `catalog.find` function
 - `v0.2.8`
