@@ -72,6 +72,21 @@ class License:
 @dataclass_json
 @dataclass
 class VariableMeta:
+    """Allowed fields for `display` attribute used for grapher:
+        name
+        zeroDay
+        yearIsDay
+        includeInTable
+        numDecimalPlaces
+        conversionFactor
+        entityAnnotationsMap
+    Fields `unit` and `shortUnit` are copied from attributes `unit` and `short_unit`
+    on VariableMeta object
+
+    NOTE: consider using its own object for `display` instead of dict and also possibly
+    underscoring fields and converting them back to camelCase before inserting to grapher
+    """
+
     title: Optional[str] = None
     description: Optional[str] = None
     sources: List[Source] = field(default_factory=list)
@@ -111,9 +126,21 @@ class DatasetMeta:
     licenses: List[License] = field(default_factory=list)
     is_public: bool = True
     additional_info: Optional[Dict[str, Any]] = None
+    version: Optional[str] = None
 
     # an md5 checksum of the ingredients used to make this dataset
     source_checksum: Optional[str] = None
+
+    def __post_init__(self) -> None:
+        """Imply version from publication_date or publication_year if not given
+        in __init__."""
+        if self.version is None:
+            if len(self.sources) == 1:
+                (source,) = self.sources
+                if source.publication_date:
+                    self.version = str(source.publication_date)
+                else:
+                    self.version = str(source.publication_year)
 
     def save(self, filename: Union[str, Path]) -> None:
         filename = Path(filename).as_posix()
@@ -131,17 +158,6 @@ class DatasetMeta:
     @staticmethod
     def from_dict(d: Dict[str, Any]) -> "DatasetMeta":
         ...
-
-    @property
-    def version(self) -> Optional[str]:
-        if len(self.sources) == 1:
-            (source,) = self.sources
-            if source.publication_date:
-                return source.publication_date
-
-            return str(source.publication_year)
-
-        return None
 
     def update_from_yaml(self, path: Union[Path, str]) -> None:
         """The main reason for wanting to do this is to manually override what goes into Grapher before an export."""

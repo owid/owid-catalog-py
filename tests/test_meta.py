@@ -28,3 +28,13 @@ def test_dict_mixin():
 def test_empty_dataset_metadata():
     d1 = meta.DatasetMeta()
     assert d1.to_dict() == {"is_public": True}
+
+
+def test_dataset_version():
+    s1 = meta.Source(name="s1", publication_date="2022-01-01")
+    s2 = meta.Source(name="s2", publication_date="2022-01-02")
+
+    assert meta.DatasetMeta(version="1").version == "1"
+    assert meta.DatasetMeta(sources=[s1]).version == "2022-01-01"
+    assert meta.DatasetMeta(sources=[s1, s2]).version is None
+    assert meta.DatasetMeta(version="1", sources=[s1]).version == "1"
