@@ -90,6 +90,7 @@ def test_underscore():
         )
         == "indicator_1_5_1__death_rate_due_to_exposure_to_forces_of_nature__per_100_000_population__estimates_reported_here_are_based_on_a_10_year_distributed_lag_for_natural_disaster_mortality__past__scaled"
     )
+    assert underscore("a|b") == "a_b"
 
 
 def test_underscore_table():

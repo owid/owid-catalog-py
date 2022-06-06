@@ -51,6 +51,7 @@ def underscore(name: Optional[str], validate: bool = True) -> Optional[str]:
 
     # replace special symbols
     name = name.replace("/", "_")
+    name = name.replace("|", "_")
     name = name.replace("=", "_")
     name = name.replace("%", "pct")
     name = name.replace("+", "plus")
