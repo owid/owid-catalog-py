@@ -69,7 +69,7 @@ class Dataset:
         feather format but you can override this to csv by passing 'csv' for the format.
 
         :param repack: if True, try to cast column types to the smallest possible type (e.g. float64 -> float32)
-            to reduce feather file size
+            to reduce feather file size. Consider using False when your dataframe is large and the repack is failing.
         """
 
         utils.validate_underscore(table.metadata.short_name, "Table's short_name")
