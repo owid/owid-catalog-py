@@ -1,5 +1,6 @@
 import re
-from typing import Optional, List
+import numpy as np
+from typing import Optional, List, Literal
 from unidecode import unidecode
 import pandas as pd
 
@@ -86,9 +87,45 @@ def underscore(name: Optional[str], validate: bool = True) -> Optional[str]:
     return name
 
 
-def underscore_table(t: Table) -> Table:
-    """Convert column and index names to underscore."""
+def _resolve_collisions(
+    orig_cols: pd.Index,
+    new_cols: pd.Index,
+    collision: Literal["raise", "rename", "ignore"],
+) -> pd.Index:
+    new_cols = new_cols.copy()
+    vc = new_cols.value_counts()
+
+    colliding_cols = list(vc[vc >= 2].index)
+    for colliding_col in colliding_cols:
+        ixs = np.where(new_cols == colliding_col)[0]
+        if collision == "raise":
+            raise NameError(
+                f"Columns `{orig_cols[ixs[0]]}` and `{orig_cols[ixs[1]]}` are given the same name "
+                f"`{colliding_cols[0]}` after underscoring`"
+            )
+        elif collision == "rename":
+            # give each column numbered suffix
+            for i, ix in enumerate(ixs):
+                new_cols.values[ix] = f"{new_cols[ix]}_{i + 1}"
+        elif collision == "ignore":
+            pass
+        else:
+            raise NotImplementedError()
+    return new_cols
+
+
+def underscore_table(
+    t: Table,
+    collision: Literal["raise", "rename", "ignore"] = "raise",
+) -> Table:
+    """Convert column and index names to underscore. In extremely rare cases
+    two columns might have the same underscored version. Use `collision` param
+    to control whether to raise an error or append numbered suffix."""
+    orig_cols = t.columns
+
     t = t.rename(columns=underscore)
+
+    t.columns = _resolve_collisions(orig_cols, t.columns, collision)
 
     t.index.names = [underscore(e) for e in t.index.names]
     t.metadata.primary_key = t.primary_key
