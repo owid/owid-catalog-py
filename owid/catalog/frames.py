@@ -10,7 +10,9 @@ import pandas as pd
 
 
 def repack_frame(
-    df: pd.DataFrame, remap: Optional[Dict[str, str]] = None
+    df: pd.DataFrame,
+    remap: Optional[Dict[str, str]] = None,
+    allow_object_dtype: bool = False,
 ) -> pd.DataFrame:
     """
     Convert the DataFrame's columns to the most compact types possible.
@@ -38,7 +40,14 @@ def repack_frame(
             df.rename(columns={from_: to_}, inplace=True)
     primary_key = [remap.get(k, k) for k in primary_key]
 
-    assert all(df[col].dtype != "object" for col in df.columns)
+    if not allow_object_dtype:
+        # NOTE: we could make category out of an object, but doing that implicitly could be
+        # dangerous if we have an integer column with a string mistake in it
+        for col in df.columns:
+            if df[col].dtype == "object":
+                raise AssertionError(
+                    f"Column `{col}` should not have dtype `object` after repacking, this can happen if you are using mixed types"
+                )
 
     # set the primary key back again
     if primary_key:

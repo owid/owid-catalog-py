@@ -200,3 +200,14 @@ def test_shrink_integers_int8():
     s = pd.Series([1, 2, 3, -3], dtype="Int64")
     v = frames.shrink_integer(s)
     assert v.dtype.name == "int8"
+
+
+def test_repack_frame_error_with_object():
+    df = pd.DataFrame({"a": [1, 2, 3, "A"]})
+    # raise exception if something is some column still has object dtype after repacking
+    with pytest.raises(AssertionError):
+        frames.repack_frame(df)
+
+    # passes if explicitly allowed
+    v = frames.repack_frame(df, allow_object_dtype=True)
+    assert list(v.dtypes) == [object]
