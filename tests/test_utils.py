@@ -110,6 +110,10 @@ def test_underscore_table():
 def test_underscore_table_collision():
     df = pd.DataFrame({"A__x": [1, 2, 3], "B": [1, 2, 3], "A(x)": [1, 2, 3]})
     t = Table(df)
+    t["A__x"].metadata.description = "desc1"
+    t["B"].metadata.description = "desc2"
+    t["A(x)"].metadata.description = "desc3"
+
     # raise error by default
     with pytest.raises(NameError):
         underscore_table(t)
@@ -117,3 +121,8 @@ def test_underscore_table_collision():
     # add suffix
     tt = underscore_table(t, collision="rename")
     assert list(tt.columns) == ["a__x_1", "b", "a__x_2"]
+
+    # make sure we retain metadata
+    assert tt["a__x_1"].metadata.description == "desc1"
+    assert tt["b"].metadata.description == "desc2"
+    assert tt["a__x_2"].metadata.description == "desc3"

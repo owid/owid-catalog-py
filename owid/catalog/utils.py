@@ -123,9 +123,11 @@ def underscore_table(
     to control whether to raise an error or append numbered suffix."""
     orig_cols = t.columns
 
-    t = t.rename(columns=underscore)
+    # underscore columns and resolve collisions
+    new_cols = pd.Index([underscore(c) for c in t.columns])
+    new_cols = _resolve_collisions(orig_cols, new_cols, collision)
 
-    t.columns = _resolve_collisions(orig_cols, t.columns, collision)
+    t = t.rename(columns={c_old: c_new for c_old, c_new in zip(orig_cols, new_cols)})
 
     t.index.names = [underscore(e) for e in t.index.names]
     t.metadata.primary_key = t.primary_key
