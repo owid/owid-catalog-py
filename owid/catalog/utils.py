@@ -71,7 +71,7 @@ def underscore(name: Optional[str], validate: bool = True) -> Optional[str]:
     name = re.sub("__+", "__", name)
 
     # convert special characters to ASCII
-    name = unidecode(name)
+    name = unidecode(name).lower()
 
     # strip leading and trailing underscores
     name = name.strip("_")
