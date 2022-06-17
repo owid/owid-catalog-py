@@ -98,6 +98,11 @@ class Table(pd.DataFrame):
         # feather can't store the index
         df = pd.DataFrame(self)
         if self.primary_key:
+            overlapping_names = set(self.index.names) & set(self.columns)
+            if overlapping_names:
+                raise ValueError(
+                    f"index names are overlapping with column names: {overlapping_names}"
+                )
             df = df.reset_index()
 
         if repack:
