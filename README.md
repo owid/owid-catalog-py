@@ -1,6 +1,6 @@
 ![build status](https://github.com/owid/owid-catalog-py/actions/workflows/python-package.yml/badge.svg)
 [![PyPI version](https://badge.fury.io/py/owid-catalog.svg)](https://badge.fury.io/py/owid-catalog)
-![](https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10-blue.svg)
+![](https://img.shields.io/badge/python-%203.9%20%7C%203.10-blue.svg)
 
 # owid-catalog
 
@@ -57,7 +57,7 @@ matches = cat.find('population')
 t = cat.find_one('population', namespace='gapminder')
 
 # load other channels than `garden`
-cat = RemoteCatalog(channels=('garden', 'meadow', 'open_numbers'))
+cat = RemoteCatalog(channels=('garden'(Default), 'meadow', 'open_numbers'))
 ```
 
 ### Datasets
@@ -145,7 +145,7 @@ Columns of `Table` have attribute `VariableMeta`, including their type, descript
 # same API as DataFrames
 t = Table({
     'gdp': [1, 2, 3],
-    'country': ['AU', 'SE', 'CH']
+    'country': ['AU', 'SE', 'CH', 'CDN']
 }).set_index('country')
 ```
 
@@ -198,7 +198,7 @@ t = Table.read_csv('/tmp/my_table.csv')
 
 ## Changelog
 
-- `master`
+- `main`
   - Optional `repack` argument when adding tables to dataset
   - Underscore `|`
   - Get `version` field from `DatasetMeta` init
@@ -233,3 +233,5 @@ t = Table.read_csv('/tmp/my_table.csv')
   - Add support for Python 3.9
 - `v0.1.0`
   - Initial release, including `searching` and `fetching` data from a remote catalog
+
+#signed-off-by LadyK-21 <ab91f3265aef33ee.live@outlook.com>
