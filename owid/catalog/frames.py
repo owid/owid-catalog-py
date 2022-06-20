@@ -10,17 +10,23 @@ import pandas as pd
 
 
 def repack_frame(
-    df: pd.DataFrame, remap: Optional[Dict[str, str]] = None
+    df: pd.DataFrame,
+    remap: Optional[Dict[str, str]] = None,
+    dtypes: Optional[Dict[str, Any]] = {},
 ) -> pd.DataFrame:
     """
     Convert the DataFrame's columns to the most compact types possible.
     Rename columns if necessary during the repacking. The column renames
     work even if the column is part of the index.
+
+    :param remap: remap column names
+    :param dtypes: dictionary of fixed dtypes to use
     """
     if df.index.names != [None]:
         raise ValueError("repacking is lost for index columns")
 
     remap = remap or {}
+    dtypes = dtypes or {}
 
     # unwind the primary key
     if len(df.index.names) == 1 and not df.index.names[0]:
@@ -30,7 +36,17 @@ def repack_frame(
         df.reset_index(inplace=True)
 
     # repack each column into the best dtype we can give it
-    df = pd.concat([repack_series(df[col]) for col in df.columns], axis=1)
+    df = pd.concat(
+        [
+            repack_series(df[col]) if col not in dtypes else df[col]
+            for col in df.columns
+        ],
+        axis=1,
+    )
+
+    # use given dtypes
+    if dtypes:
+        df = df.astype(dtypes)
 
     # remap all column names, including those in the primary key
     for from_, to_ in remap.items():
@@ -38,7 +54,9 @@ def repack_frame(
             df.rename(columns={from_: to_}, inplace=True)
     primary_key = [remap.get(k, k) for k in primary_key]
 
-    assert all(df[col].dtype != "object" for col in df.columns)
+    for col in df.columns:
+        if df[col].dtype == "object":
+            raise ValueError(f"column {col} is still object")
 
     # set the primary key back again
     if primary_key:

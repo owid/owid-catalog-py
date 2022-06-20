@@ -200,3 +200,13 @@ def test_shrink_integers_int8():
     s = pd.Series([1, 2, 3, -3], dtype="Int64")
     v = frames.shrink_integer(s)
     assert v.dtype.name == "int8"
+
+
+def test_repack_frame_keep_dtypes():
+    df = pd.DataFrame({"myint": [1, 2, 3], "myfloat": [1.0, 2.2, 3.0]})
+
+    df2 = df.copy()
+    df2 = frames.repack_frame(df2, dtypes={"myint": float})
+
+    assert df2.myint.dtype.name == "float64"
+    assert df2.myfloat.dtype.name == "float32"
