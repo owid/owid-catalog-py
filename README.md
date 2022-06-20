@@ -28,7 +28,7 @@ df = lung_cancer_tables.iloc[0].load()
 
 ## Development
 
-You need Python 3.8+, `poetry` and `make` installed. Clone the repo, then you can simply run:
+You need Python 3.9+, `poetry` and `make` installed. Clone the repo, then you can simply run:
 
 ```
 # run all unit tests and CI checks
@@ -207,12 +207,12 @@ t = Table.read_csv('/tmp/my_table.csv')
   - Allow multiple channels in `catalog.find` function
 - `v0.2.8`
   - Update `OWID_CATALOG_VERSION` to 2
-- `v0.2.7`
-  - Split datasets into channels (`garden`, `meadow`, `open_numbers`, ...) and make garden default one
+- `v2`
+  - Split datasets into channels (`garden`(Default), `meadow`, `open_numbers`, ...) and make garden default one
   - Add `.find_latest` method to Catalog
 - `v0.2.6`
-  - Add flag `is_public` for public/private datasets
-  - Enforce snake_case for table, dataset and variable short names
+  - Add flag `is_public` and `is_private` for public/private datasets
+  - Enforce `snake_case` for table, dataset and variable short names
   - Add fields `published_by` and `published_at` to Source
   - Added a list of supported and unsupported operations on columns
   - Updated `pyarrow`
@@ -225,11 +225,11 @@ t = Table.read_csv('/tmp/my_table.csv')
 - `v0.2.2`
   - Repack frames to compact dtypes on `Table.to_feather()`
 - `v0.2.1`
-  - Fix key typo used in version check
+  - Fix key `typo` used in version check
 - `v0.2.0`
   - Copy dataset metadata into tables, to make tables more traceable
   - Add API versioning, and a requirement to update if your version of this library is too old
 - `v0.1.1`
-  - Add support for Python 3.8
+  - Add support for Python 3.9
 - `v0.1.0`
-  - Initial release, including searching and fetching data from a remote catalog
+  - Initial release, including `searching` and `fetching` data from a remote catalog
