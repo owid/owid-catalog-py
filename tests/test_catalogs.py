@@ -77,6 +77,28 @@ def test_calling_find_adds_channels():
     assert set(REMOTE_CATALOG.channels) == {"garden", "meadow"}  # type: ignore
 
 
+def test_reindex_with_include():
+    with mock_catalog(3, channels=("garden",)) as catalog:
+        old_frame = catalog.frame.copy()
+
+        # create new dataset0
+        create_temp_dataset(catalog.path / "garden" / "dataset0")
+
+        # reindex
+        catalog.reindex(include="dataset0")
+        new_frame = catalog.frame
+
+        # and make sure we have a new checksum for dataset0
+        assert set(old_frame[old_frame.dataset == "dataset0"].checksum) != set(
+            new_frame[new_frame.dataset == "dataset0"].checksum
+        )
+
+        # and same checksum for others
+        assert set(old_frame[old_frame.dataset != "dataset0"].checksum) == set(
+            new_frame[new_frame.dataset != "dataset0"].checksum
+        )
+
+
 @contextmanager
 def mock_catalog(
     n: int = 3, channels: Iterable[CHANNEL] = ("garden",)

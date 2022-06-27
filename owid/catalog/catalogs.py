@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Dict, Optional, Iterator, Union, Any, cast, Literal, Iterable
 import json
 import os
+import re
 import heapq
 
 import pandas as pd
@@ -144,14 +145,18 @@ class LocalCatalog(CatalogMixin):
             ),
         )
 
-    def iter_datasets(self, channel: CHANNEL) -> Iterator[Dataset]:
+    def iter_datasets(
+        self, channel: CHANNEL, include: Optional[str] = None
+    ) -> Iterator[Dataset]:
         to_search = [self.path / channel]
         if not to_search[0].exists():
             return
 
+        re_search = re.compile(include or "")
+
         while to_search:
             dir = heapq.heappop(to_search)
-            if (dir / "index.json").exists():
+            if (dir / "index.json").exists() and re_search.search(str(dir)):
                 yield Dataset(dir)
                 continue
 
@@ -159,19 +164,24 @@ class LocalCatalog(CatalogMixin):
                 if child.is_dir():
                     heapq.heappush(to_search, child)
 
-    def reindex(self) -> None:
+    def reindex(self, include: Optional[str] = None) -> None:
         self._save_metadata({"format_version": OWID_CATALOG_VERSION})
 
         # walk the directory tree, generate a channel/namespace/version/dataset/table frame
         # save it to feather
         frames = []
-        log.info("reindex.start", channels=self.channels)
+        log.info("reindex.start", channels=self.channels, include=include)
         for channel in self.channels:
             channel_frames = []
-            for ds in self.iter_datasets(channel):
+            for ds in self.iter_datasets(channel, include=include):
                 channel_frames.append(ds.index(self.path))
             frames += channel_frames
-            log.info("reindex", channel=channel, datasets=len(channel_frames))
+            log.info(
+                "reindex",
+                channel=channel,
+                datasets=len(channel_frames),
+                include=include,
+            )
 
         df = pd.concat(frames, ignore_index=True)
 
@@ -181,13 +191,24 @@ class LocalCatalog(CatalogMixin):
         df.sort_values(keys, inplace=True)
         df = df[columns]
 
+        if include:
+            # we used regex to find datasets, so merge it with the original frame
+            frame = CatalogFrame(
+                pd.concat(
+                    [df, self.frame.loc[~self.frame.path.isin(df.path)]],
+                    ignore_index=True,
+                )
+            )
+        else:
+            frame = CatalogFrame(df)
+
         # save all channels to disk in separate files
         for channel in self.channels:
-            df[df.channel == channel].reset_index(drop=True).to_feather(
+            frame[frame.channel == channel].reset_index(drop=True).to_feather(
                 self._catalog_channel_file(channel)
             )
 
-        self.frame = CatalogFrame(df)
+        self.frame = frame
         self.frame._base_uri = self.path.as_posix() + "/"
 
     def _save_metadata(self, contents: Dict[str, Any]) -> None:
