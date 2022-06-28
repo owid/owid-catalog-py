@@ -165,10 +165,38 @@ class LocalCatalog(CatalogMixin):
                     heapq.heappush(to_search, child)
 
     def reindex(self, include: Optional[str] = None) -> None:
+        """Walk the directory tree, generate a channel/namespace/version/dataset/table frame
+        and save it to feather."""
         self._save_metadata({"format_version": OWID_CATALOG_VERSION})
+        index = self._scan_for_datasets(include)
 
-        # walk the directory tree, generate a channel/namespace/version/dataset/table frame
-        # save it to feather
+        if include:
+            # we used regex to find datasets, so merge it with the original frame
+            index = self._merge_index(self.frame, index)
+
+        self._save_index(index)
+        self.frame = index
+        self.frame._base_uri = self.path.as_posix() + "/"
+
+    @staticmethod
+    def _merge_index(frame: "CatalogFrame", update: "CatalogFrame") -> "CatalogFrame":
+        """Merge two indexes."""
+        return CatalogFrame(
+            pd.concat(
+                [update, frame.loc[~frame.path.isin(update.path)]],
+                ignore_index=True,
+            )
+        )
+
+    def _save_index(self, frame: "CatalogFrame") -> None:
+        """Save all channels to disk in separate files."""
+        for channel in self.channels:
+            frame[frame.channel == channel].reset_index(drop=True).to_feather(
+                self._catalog_channel_file(channel)
+            )
+
+    def _scan_for_datasets(self, include: Optional[str] = None) -> "CatalogFrame":
+        """Scan datasets. You can filter by `include` to get better performance."""
         frames = []
         log.info("reindex.start", channels=self.channels, include=include)
         for channel in self.channels:
@@ -189,27 +217,9 @@ class LocalCatalog(CatalogMixin):
         columns = keys + [c for c in df.columns if c not in keys]
 
         df.sort_values(keys, inplace=True)
-        df = df[columns]
+        df = df.loc[:, columns]
 
-        if include:
-            # we used regex to find datasets, so merge it with the original frame
-            frame = CatalogFrame(
-                pd.concat(
-                    [df, self.frame.loc[~self.frame.path.isin(df.path)]],
-                    ignore_index=True,
-                )
-            )
-        else:
-            frame = CatalogFrame(df)
-
-        # save all channels to disk in separate files
-        for channel in self.channels:
-            frame[frame.channel == channel].reset_index(drop=True).to_feather(
-                self._catalog_channel_file(channel)
-            )
-
-        self.frame = frame
-        self.frame._base_uri = self.path.as_posix() + "/"
+        return CatalogFrame(df)
 
     def _save_metadata(self, contents: Dict[str, Any]) -> None:
         with open(self._metadata_file, "w") as ostream:
