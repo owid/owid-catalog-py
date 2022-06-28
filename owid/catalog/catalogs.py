@@ -167,16 +167,16 @@ class LocalCatalog(CatalogMixin):
     def reindex(self, include: Optional[str] = None) -> None:
         """Walk the directory tree, generate a channel/namespace/version/dataset/table frame
         and save it to feather."""
-        self._save_metadata({"format_version": OWID_CATALOG_VERSION})
         index = self._scan_for_datasets(include)
 
         if include:
             # we used regex to find datasets, so merge it with the original frame
             index = self._merge_index(self.frame, index)
 
+        index._base_uri = self.path.as_posix() + "/"
+
         self._save_index(index)
         self.frame = index
-        self.frame._base_uri = self.path.as_posix() + "/"
 
     @staticmethod
     def _merge_index(frame: "CatalogFrame", update: "CatalogFrame") -> "CatalogFrame":
@@ -194,6 +194,8 @@ class LocalCatalog(CatalogMixin):
             frame[frame.channel == channel].reset_index(drop=True).to_feather(
                 self._catalog_channel_file(channel)
             )
+        # add a catalog version number that we can use to tell old clients to update
+        self._save_metadata({"format_version": OWID_CATALOG_VERSION})
 
     def _scan_for_datasets(self, include: Optional[str] = None) -> "CatalogFrame":
         """Scan datasets. You can filter by `include` to get better performance."""
