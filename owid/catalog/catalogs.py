@@ -37,8 +37,9 @@ S3_OWID_URI = "s3://owid-catalog"
 REMOTE_CATALOG: Optional["RemoteCatalog"] = None
 
 # available channels in the catalog
+# NOTE: channel `explorer` was deprecated, remove it once we merge new food explorer in the correct explorers channel
 CHANNEL = Literal[
-    "garden", "meadow", "backport", "open_numbers", "examples", "explorer"
+    "garden", "meadow", "backport", "open_numbers", "examples", "explorer", "explorers"
 ]
 
 
