@@ -38,3 +38,7 @@ def test_dataset_version():
     assert meta.DatasetMeta(sources=[s1]).version == "2022-01-01"
     assert meta.DatasetMeta(sources=[s1, s2]).version is None
     assert meta.DatasetMeta(version="1", sources=[s1]).version == "1"
+
+
+def test_to_json():
+    meta.Source(name="s1", publication_date="2022-01-01").to_json()  # type: ignore
