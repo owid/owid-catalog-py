@@ -105,6 +105,7 @@ class Dataset:
         return exists(feather_table_filename) or exists(csv_table_filename)
 
     def save(self) -> None:
+        assert self.metadata.short_name, "Missing dataset short_name"
         utils.validate_underscore(self.metadata.short_name, "Dataset's short_name")
 
         if not self.metadata.namespace:
