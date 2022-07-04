@@ -94,8 +94,8 @@ class Dataset:
             return self.table_cache[name]
 
         table_basename = join(self.path, name)
-        feather_filename = table_basename + '.feather'
-        csv_filename = table_basename + '.csv'
+        feather_filename = table_basename + ".feather"
+        csv_filename = table_basename + ".csv"
 
         if exists(feather_filename):
             table = tables.Table.read_feather(feather_filename)
