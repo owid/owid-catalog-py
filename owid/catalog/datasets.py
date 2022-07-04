@@ -38,6 +38,7 @@ class Dataset:
             self.path = path
 
         self.metadata = DatasetMeta.load(self._index_file)
+        self.table_cache: dict[str, tables.Table] = {}
 
     @classmethod
     def create_empty(
@@ -89,15 +90,25 @@ class Dataset:
             table.to_csv(table_filename)
 
     def __getitem__(self, name: str) -> tables.Table:
-        table_filename = join(self.path, name + ".feather")
-        if exists(table_filename):
-            return tables.Table.read_feather(table_filename)
-        table_filename = join(self.path, name + ".csv")
-        if exists(table_filename):
-            return tables.Table.read_csv(table_filename)
-        raise KeyError(
-            f"Table `{name}` not found, available tables: {', '.join(self.table_names)}"
-        )
+        if name in self.table_cache:
+            return self.table_cache[name]
+
+        table_basename = join(self.path, name)
+        feather_filename = table_basename + '.feather'
+        csv_filename = table_basename + '.csv'
+
+        if exists(feather_filename):
+            table = tables.Table.read_feather(feather_filename)
+        elif exists(csv_filename):
+            table = tables.Table.read_csv(csv_filename)
+        else:
+            raise KeyError(
+                f"Table `{name}` not found, available tables: {', '.join(self.table_names)}"
+            )
+
+        # reading files is expensive, so cache the result for later access
+        self.table_cache[name] = table
+        return table
 
     def __contains__(self, name: str) -> bool:
         feather_table_filename = join(self.path, name + ".feather")
