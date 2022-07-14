@@ -1,11 +1,21 @@
 import re
 import numpy as np
-from typing import Optional, List, Literal
+from typing import Optional, List, Literal, overload
 from unidecode import unidecode
 import pandas as pd
 
 from .tables import Table
 from .variables import Variable
+
+
+@overload
+def underscore(name: str, validate: bool = True) -> str:
+    ...
+
+
+@overload
+def underscore(name: None, validate: bool = True) -> None:
+    ...
 
 
 def underscore(name: Optional[str], validate: bool = True) -> Optional[str]:

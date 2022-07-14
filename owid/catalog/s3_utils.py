@@ -86,7 +86,7 @@ def connect() -> Any:
 def check_for_default_profile() -> None:
     filename = path.expanduser("~/.aws/config")
     if not path.exists(filename) or f"[{AWS_PROFILE}]" not in open(filename).read():
-        raise Exception(
+        raise MissingCredentialsError(
             f"""you must set up a config file at ~/.aws/config
 
 it should look like:
@@ -94,8 +94,13 @@ it should look like:
 [{AWS_PROFILE}]
 aws_access_key_id = ...
 aws_secret_access_key = ...
+region = ...
 """
         )
+
+
+class MissingCredentialsError(Exception):
+    pass
 
 
 class UploadError(Exception):
