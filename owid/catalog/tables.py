@@ -286,7 +286,7 @@ class Table(pd.DataFrame):
         t_annot = annot["tables"][table_name]
 
         # update variables
-        for v_short_name, v_annot in t_annot["variables"].items():
+        for v_short_name, v_annot in (t_annot["variables"] or {}).items():
             for k, v in v_annot.items():
                 setattr(self[v_short_name].metadata, k, v)
 

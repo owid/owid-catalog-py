@@ -203,6 +203,7 @@ t = Table.read_csv('/tmp/my_table.csv')
   - Underscore `|`
   - Get `version` field from `DatasetMeta` init
   - Resolve collisions of `underscore_table` function
+  - Convert `version` to `str` and load json `dimensions`
 - `v0.2.9`
   - Allow multiple channels in `catalog.find` function
 - `v0.2.8`

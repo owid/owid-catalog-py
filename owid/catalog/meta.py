@@ -165,7 +165,7 @@ class DatasetMeta:
             annot = yaml.safe_load(istream)
 
         # update sources of dataset
-        for source_annot in annot["dataset"].get("sources", []):
+        for source_annot in annot["dataset"].get("sources", []) or []:
             # if there's an existing source, update it
             ds_sources = [s for s in self.sources if s.name == source_annot["name"]]
             if ds_sources:
