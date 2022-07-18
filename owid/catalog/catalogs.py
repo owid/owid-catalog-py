@@ -135,15 +135,16 @@ class LocalCatalog(CatalogMixin):
         """
         Read selected channels from local path.
         """
-        return cast(
-            pd.DataFrame,
-            pd.concat(
-                [
-                    pd.read_feather(self._catalog_channel_file(channel))
-                    for channel in channels
-                ]
-            ),
+        df = pd.concat(
+            [
+                pd.read_feather(self._catalog_channel_file(channel))
+                for channel in channels
+            ]
         )
+        df.dimensions = df.dimensions.map(
+            lambda s: json.loads(s) if isinstance(s, str) else s
+        )
+        return cast(pd.DataFrame, df)
 
     def iter_datasets(
         self, channel: CHANNEL, include: Optional[str] = None
@@ -174,6 +175,14 @@ class LocalCatalog(CatalogMixin):
             index = self._merge_index(self.frame, index)
 
         index._base_uri = self.path.as_posix() + "/"
+
+        # convert int versions to strings
+        index.version = index.version.astype(str)
+
+        # make sure dimensions json is loaded
+        index.dimensions = index.dimensions.map(
+            lambda s: json.loads(s) if isinstance(s, str) else s
+        )
 
         self._save_index(index)
         self.frame = index
