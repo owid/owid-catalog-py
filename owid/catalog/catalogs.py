@@ -54,6 +54,7 @@ class CatalogMixin:
         self,
         table: Optional[str] = None,
         namespace: Optional[str] = None,
+        version: Optional[str] = None,
         dataset: Optional[str] = None,
         channel: Optional[CHANNEL] = None,
     ) -> "CatalogFrame":
@@ -64,6 +65,9 @@ class CatalogMixin:
 
         if namespace:
             criteria &= self.frame.namespace == namespace
+
+        if version:
+            criteria &= self.frame.version == version
 
         if dataset:
             criteria &= self.frame.dataset == dataset
@@ -358,6 +362,7 @@ class CatalogSeries(pd.Series):
 def find(
     table: Optional[str] = None,
     namespace: Optional[str] = None,
+    version: Optional[str] = None,
     dataset: Optional[str] = None,
     channels: Iterable[CHANNEL] = ("garden",),
 ) -> "CatalogFrame":
@@ -372,7 +377,9 @@ def find(
     if not REMOTE_CATALOG:
         REMOTE_CATALOG = RemoteCatalog(channels=channels)
 
-    return REMOTE_CATALOG.find(table=table, namespace=namespace, dataset=dataset)
+    return REMOTE_CATALOG.find(
+        table=table, namespace=namespace, version=version, dataset=dataset
+    )
 
 
 def find_one(*args: Optional[str], **kwargs: Optional[str]) -> Table:
