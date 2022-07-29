@@ -21,7 +21,7 @@ from .meta import DatasetMeta, TableMeta
 from . import utils
 
 ALLOWED_FORMATS = ["csv", "feather", "parquet"]
-DEFAULT_FORMATS = ["csv", "feather", "parquet"]
+DEFAULT_FORMATS = ["feather", "parquet"]
 
 
 @dataclass
