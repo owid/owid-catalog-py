@@ -8,6 +8,22 @@ _A Pythonic API for working with OWID's data catalog._
 
 Status: experimental, APIs likely to change
 
+## Overview
+
+Our World In Data is building a new data catalog, with the goal of our datasets being reproducible and transparent to the general public. That project is our [etl](https://github.com/owid/etl), which going forward will contain the recipes for all the datasets we republish.
+
+This library allows you to query our data catalog programmatically, and get back data in the form of Pandas data frames, perfect for data pipelines or Jupyter notebook explorations.
+
+```mermaid
+graph TB
+
+etl -->|reads| walden[upstream datasets]
+etl -->|generates| s3[data catalog]
+catalog[owid-catalog-py] -->|queries| s3
+```
+
+We would love feedback on how we can make this library and overall data catalog better. Feel free to send us an email at info@ourworldindata.org, or start a [discussion](https://github.com/owid/etl/discussions) on Github.
+
 ## Quickstart
 
 Install with `pip install owid-catalog`. Then you can begin exploring the experimental data catalog:
