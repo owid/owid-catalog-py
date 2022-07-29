@@ -7,7 +7,7 @@ from os import mkdir
 from dataclasses import dataclass
 import shutil
 import warnings
-from typing import Any, Iterator, List, Literal, Optional, Union
+from typing import Any, Iterator, List, Optional, Union
 from glob import glob
 import hashlib
 from pathlib import Path
@@ -19,6 +19,9 @@ from . import tables
 from .properties import metadata_property
 from .meta import DatasetMeta, TableMeta
 from . import utils
+
+ALLOWED_FORMATS = ["csv", "feather", "parquet"]
+DEFAULT_FORMATS = ["csv", "feather", "parquet"]
 
 
 @dataclass
@@ -62,7 +65,7 @@ class Dataset:
     def add(
         self,
         table: tables.Table,
-        format: Literal["csv", "feather"] = "feather",
+        formats: List[str] = DEFAULT_FORMATS,
         repack: bool = True,
     ) -> None:
         """Add this table to the dataset by saving it in the dataset's folder. Defaults to
@@ -79,22 +82,36 @@ class Dataset:
         # copy dataset metadata to the table
         table.metadata.dataset = self.metadata
 
-        allowed_formats = ["feather", "csv"]
-        if format not in allowed_formats:
-            raise Exception(f"Format '{format}'' is not supported")
-        table_filename = join(self.path, table.metadata.checked_name + f".{format}")
-        if format == "feather":
-            table.to_feather(table_filename, repack=repack)
-        else:
-            table.to_csv(table_filename)
+        for format in formats:
+            if format not in ALLOWED_FORMATS:
+                raise Exception(f"Format '{format}'' is not supported")
+
+            table_filename = join(self.path, table.metadata.checked_name + f".{format}")
+
+            if format == "feather":
+                table.to_feather(table_filename, repack=repack)
+
+            elif format == "parquet":
+                table.to_parquet(table_filename, repack=repack)
+
+            else:
+                table.to_csv(table_filename)
 
     def __getitem__(self, name: str) -> tables.Table:
-        table_filename = join(self.path, name + ".feather")
-        if exists(table_filename):
-            return tables.Table.read_feather(table_filename)
-        table_filename = join(self.path, name + ".csv")
-        if exists(table_filename):
-            return tables.Table.read_csv(table_filename)
+        stem = self.path / Path(name)
+
+        feather_file = stem.with_suffix(".feather")
+        if feather_file.exists():
+            return tables.Table.read_feather(feather_file)
+
+        parquet_file = stem.with_suffix(".parquet")
+        if parquet_file.exists():
+            return tables.Table.read_parquet(parquet_file)
+
+        csv_file = stem.with_suffix(".csv")
+        if csv_file.exists():
+            return tables.Table.read_csv(csv_file)
+
         raise KeyError(
             f"Table `{name}` not found, available tables: {', '.join(self.table_names)}"
         )
@@ -169,24 +186,22 @@ class Dataset:
         return join(self.path, "index.json")
 
     def __len__(self) -> int:
-        return len(self._data_files)
+        return len(self._table_names)
 
     def __iter__(self) -> Iterator[tables.Table]:
-        for filename in self._data_files:
-            if filename.endswith(".feather"):
-                yield tables.Table.read_feather(filename)
-
-            elif filename.endswith(".csv"):
-                yield tables.Table.read_csv(filename)
-
-            else:
-                raise Exception(f"don't know how to read table: {filename}")
+        for name in self._table_names:
+            yield self[name]
 
     @property
     def _data_files(self) -> List[str]:
         feather_pattern = join(self.path, "*.feather")
+        parquet_pattern = join(self.path, "*.feather")
         csv_pattern = join(self.path, "*.csv")
-        return sorted(glob(feather_pattern) + glob(csv_pattern))
+        return sorted(glob(feather_pattern) + glob(parquet_pattern) + glob(csv_pattern))
+
+    @property
+    def _table_names(self) -> List[str]:
+        return sorted(set(Path(f).stem for f in self._data_files))
 
     @property
     def table_names(self) -> List[str]:

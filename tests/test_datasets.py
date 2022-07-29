@@ -103,7 +103,7 @@ def test_add_table_csv():
         ds = Dataset.create_empty(dirname)
 
         # add the table, it should be on disk now
-        ds.add(t, format="csv")
+        ds.add(t, formats=["csv"])
 
         # check that it's really on disk
         table_files = [
