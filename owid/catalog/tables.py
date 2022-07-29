@@ -135,8 +135,8 @@ class Table(pd.DataFrame):
         # (some metadata gets auto-generated to help pandas deserialise better, we want to keep that)
         t = pyarrow.Table.from_pandas(df)
         new_metadata = {
-            b"owid_table": self.metadata.to_json(),  # type: ignore
-            b"owid_fields": json.dumps(self._get_fields_as_dict()),
+            b"owid_table": json.dumps(self.metadata.to_dict(), default=str),  # type: ignore
+            b"owid_fields": json.dumps(self._get_fields_as_dict(), default=str),
             **t.schema.metadata,
         }
         schema = t.schema.with_metadata(new_metadata)
