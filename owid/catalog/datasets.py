@@ -94,8 +94,11 @@ class Dataset:
             elif format == "parquet":
                 table.to_parquet(table_filename, repack=repack)
 
-            else:
+            elif format == "csv":
                 table.to_csv(table_filename)
+
+            else:
+                raise ValueError(f"Unknown format: {format}")
 
     def __getitem__(self, name: str) -> tables.Table:
         stem = self.path / Path(name)
