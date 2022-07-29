@@ -186,10 +186,10 @@ class Dataset:
         return join(self.path, "index.json")
 
     def __len__(self) -> int:
-        return len(self._table_names)
+        return len(self.table_names)
 
     def __iter__(self) -> Iterator[tables.Table]:
-        for name in self._table_names:
+        for name in self.table_names:
             yield self[name]
 
     @property
@@ -200,13 +200,8 @@ class Dataset:
         return sorted(glob(feather_pattern) + glob(parquet_pattern) + glob(csv_pattern))
 
     @property
-    def _table_names(self) -> List[str]:
-        return sorted(set(Path(f).stem for f in self._data_files))
-
-    @property
     def table_names(self) -> List[str]:
-        """Return table names available in the dataset."""
-        return [Path(f).stem for f in self._data_files]
+        return sorted(set(Path(f).stem for f in self._data_files))
 
     @property
     def _metadata_files(self) -> List[str]:
