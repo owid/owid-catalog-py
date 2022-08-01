@@ -18,8 +18,6 @@ import structlog
 from urllib.parse import urlparse
 import numpy.typing as npt
 
-from etl.helpers import read_frame
-
 from .datasets import Dataset, FileFormat
 from .tables import Table
 from . import s3_utils
