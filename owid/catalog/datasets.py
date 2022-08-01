@@ -7,7 +7,7 @@ from os import mkdir
 from dataclasses import dataclass
 import shutil
 import warnings
-from typing import Any, Iterator, List, Optional, Union
+from typing import Any, Iterator, List, Literal, Optional, Union
 from glob import glob
 import hashlib
 from pathlib import Path
@@ -20,8 +20,9 @@ from .properties import metadata_property
 from .meta import DatasetMeta, TableMeta
 from . import utils
 
-ALLOWED_FORMATS = ["csv", "feather", "parquet"]
-DEFAULT_FORMATS = ["feather", "parquet"]
+FileFormat = Literal["csv", "feather", "parquet"]
+ALLOWED_FORMATS: List[FileFormat] = ["csv", "feather", "parquet"]
+DEFAULT_FORMATS: List[FileFormat] = ["feather", "parquet"]
 
 
 @dataclass
@@ -65,7 +66,7 @@ class Dataset:
     def add(
         self,
         table: tables.Table,
-        formats: List[str] = DEFAULT_FORMATS,
+        formats: List[FileFormat] = DEFAULT_FORMATS,
         repack: bool = True,
     ) -> None:
         """Add this table to the dataset by saving it in the dataset's folder. Defaults to
