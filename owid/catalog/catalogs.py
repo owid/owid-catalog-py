@@ -4,7 +4,7 @@
 #
 
 from pathlib import Path
-from typing import Dict, Optional, Iterator, Union, Any, cast, Literal, Iterable
+from typing import Dict, List, Optional, Iterator, Union, Any, cast, Literal, Iterable
 import json
 import os
 import re
@@ -18,7 +18,7 @@ import structlog
 from urllib.parse import urlparse
 import numpy.typing as npt
 
-from .datasets import Dataset
+from .datasets import Dataset, FileFormat
 from .tables import Table
 from . import s3_utils
 
@@ -40,6 +40,9 @@ REMOTE_CATALOG: Optional["RemoteCatalog"] = None
 CHANNEL = Literal[
     "garden", "meadow", "backport", "open_numbers", "examples", "explorers"
 ]
+
+# what formats should we for our index of available datasets?
+INDEX_FORMATS: List[FileFormat] = ["feather", "parquet"]
 
 
 class CatalogMixin:
@@ -128,8 +131,10 @@ class LocalCatalog(CatalogMixin):
             [self._catalog_channel_file(channel).exists() for channel in channels]
         )
 
-    def _catalog_channel_file(self, channel: CHANNEL) -> Path:
-        return self.path / f"catalog-{channel}.feather"
+    def _catalog_channel_file(
+        self, channel: CHANNEL, format: FileFormat = "feather"
+    ) -> Path:
+        return self.path / f"catalog-{channel}.{format}"
 
     @property
     def _metadata_file(self) -> Path:
@@ -202,11 +207,24 @@ class LocalCatalog(CatalogMixin):
         )
 
     def _save_index(self, frame: "CatalogFrame") -> None:
-        """Save all channels to disk in separate files."""
+        """
+        Save all channels to disk in separate catalog files, and in each of our
+        supported formats.
+        """
         for channel in self.channels:
-            frame[frame.channel == channel].reset_index(drop=True).to_feather(
-                self._catalog_channel_file(channel)
-            )
+            channel_frame = frame[frame.channel == channel].reset_index(drop=True)
+            for format in INDEX_FORMATS:
+                filename = self._catalog_channel_file(channel, format)
+
+                if format == "feather":
+                    channel_frame.to_feather(filename)
+
+                elif format == "parquet":
+                    channel_frame.to_parquet(filename)
+
+                else:
+                    raise ValueError(f"unsupported format: {format}")
+
         # add a catalog version number that we can use to tell old clients to update
         self._save_metadata({"format_version": OWID_CATALOG_VERSION})
 
@@ -278,6 +296,9 @@ class RemoteCatalog(CatalogMixin):
         """
         Read selected channels from S3.
         """
+        # prefer to read in feather, since it's the most compact format
+        assert "feather" in INDEX_FORMATS
+
         return cast(
             pd.DataFrame,
             pd.concat(
