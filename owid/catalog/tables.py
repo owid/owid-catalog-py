@@ -11,6 +11,8 @@ from collections import defaultdict
 from pathlib import Path
 
 import pandas as pd
+import pyarrow
+import pyarrow.parquet as pq
 import requests
 
 from . import variables
@@ -115,21 +117,50 @@ class Table(pd.DataFrame):
         metadata_filename = splitext(path)[0] + ".meta.json"
         self._save_metadata(metadata_filename)
 
+    def to_parquet(self, path: Any, repack: bool = True) -> None:  # type: ignore
+        """
+        Save this table as a parquet file with embedded metadata in the table schema.
+        """
+        if not isinstance(path, str) or not path.endswith(".parquet"):
+            raise ValueError(f'filename must end in ".parquet": {path}')
+
+        if repack:
+            # use smaller data types wherever possible
+            # NOTE: this can be slow for large dataframes
+            df = pd.DataFrame(self)
+        else:
+            df = self
+
+        # create a pyarrow table with metadata in the schema
+        # (some metadata gets auto-generated to help pandas deserialise better, we want to keep that)
+        t = pyarrow.Table.from_pandas(df)
+        new_metadata = {
+            b"owid_table": json.dumps(self.metadata.to_dict(), default=str),  # type: ignore
+            b"owid_fields": json.dumps(self._get_fields_as_dict(), default=str),
+            **t.schema.metadata,
+        }
+        schema = t.schema.with_metadata(new_metadata)
+        t = t.cast(schema)
+
+        # write the combined table to disk
+        pq.write_table(t, path)
+
     def _save_metadata(self, filename: str) -> None:
         # write metadata
         with open(filename, "w") as ostream:
             metadata = self.metadata.to_dict()  # type: ignore
             metadata["primary_key"] = self.primary_key
-            metadata["fields"] = {
-                col: self._fields[col].to_dict() for col in self.all_columns
-            }
+            metadata["fields"] = self._get_fields_as_dict()
             json.dump(metadata, ostream, indent=2, default=str)
 
     @classmethod
-    def read_csv(cls, path: str) -> "Table":
+    def read_csv(cls, path: Union[str, Path]) -> "Table":
         """
         Read the table from csv plus accompanying JSON sidecar.
         """
+        if isinstance(path, Path):
+            path = path.as_posix()
+
         if not path.endswith(".csv"):
             raise ValueError(f'filename must end in ".csv": {path}')
 
@@ -187,10 +218,15 @@ class Table(pd.DataFrame):
         return t
 
     @classmethod
-    def read_feather(cls, path: str) -> "Table":
+    def read_feather(cls, path: Union[str, Path]) -> "Table":
         """
         Read the table from feather plus accompanying JSON sidecar.
+
+        The path may be a local file path or a URL.
         """
+        if isinstance(path, Path):
+            path = path.as_posix()
+
         if not path.endswith(".feather"):
             raise ValueError(f'filename must end in ".feather": {path}')
 
@@ -204,14 +240,46 @@ class Table(pd.DataFrame):
         fields = metadata.pop("fields") if "fields" in metadata else {}
 
         df.metadata = TableMeta.from_dict(metadata)
-        df._fields = defaultdict(
-            VariableMeta, {k: VariableMeta.from_dict(v) for k, v in fields.items()}
-        )
+        df._set_fields_from_dict(fields)
 
         if primary_key:
             df.set_index(primary_key, inplace=True)
 
         return df
+
+    @classmethod
+    def read_parquet(cls, path: Union[str, Path]) -> "Table":
+        """
+        Read the table from feather plus accompanying JSON sidecar.
+
+        The path may be a local file path or a URL.
+        """
+        if isinstance(path, Path):
+            path = path.as_posix()
+
+        if not path.endswith(".parquet"):
+            raise ValueError(f'filename must end in ".parquet": {path}')
+
+        # load the data as a pyarrow table
+        t = pq.read_table(path)
+        df = Table(t.to_pandas())
+
+        # look for embedded table and field metadata in the table schema
+        if b"owid_table" in t.schema.metadata:
+            df.metadata = TableMeta.from_json(t.schema.metadata[b"owid_table"])  # type: ignore
+        if b"owid_fields" in t.schema.metadata:
+            fields = json.loads(t.schema.metadata[b"owid_fields"])
+            df._set_fields_from_dict(fields)
+
+        return df
+
+    def _get_fields_as_dict(self) -> Dict[str, Any]:
+        return {col: self._fields[col].to_dict() for col in self.all_columns}
+
+    def _set_fields_from_dict(self, fields: Dict[str, Any]) -> None:
+        self._fields = defaultdict(
+            VariableMeta, {k: VariableMeta.from_dict(v) for k, v in fields.items()}
+        )
 
     @staticmethod
     def _read_metadata(data_path: str) -> Dict[str, Any]:

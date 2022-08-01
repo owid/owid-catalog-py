@@ -80,6 +80,7 @@ def test_add_table():
         # check that it's really on disk
         table_files = [
             join(dirname, t.metadata.checked_name + ".feather"),
+            join(dirname, t.metadata.checked_name + ".parquet"),
             join(dirname, t.metadata.checked_name + ".meta.json"),
         ]
         for filename in table_files:
@@ -103,7 +104,7 @@ def test_add_table_csv():
         ds = Dataset.create_empty(dirname)
 
         # add the table, it should be on disk now
-        ds.add(t, format="csv")
+        ds.add(t, formats=["csv"])
 
         # check that it's really on disk
         table_files = [
@@ -112,6 +113,30 @@ def test_add_table_csv():
         ]
         for filename in table_files:
             assert exists(filename)
+
+        # load a fresh copy from disk
+        t2 = ds[t.metadata.checked_name]
+        assert id(t2) != id(t)
+
+        # the fresh copy from disk should be identical to the copy we added
+        assert t2.equals_table(t)
+
+
+def test_add_table_parquet():
+    t = mock_table()
+
+    with temp_dataset_dir() as dirname:
+        # make a dataset
+        ds = Dataset.create_empty(dirname)
+
+        # add the table, it should be on disk now
+        ds.add(t, formats=["parquet"])
+
+        # check that it's really on disk
+        assert exists(join(dirname, t.metadata.checked_name + ".parquet"))
+
+        # reaffirm that metadata is not coming from a JSON file
+        assert not exists(join(dirname, t.metadata.checked_name + ".meta.json"))
 
         # load a fresh copy from disk
         t2 = ds[t.metadata.checked_name]
