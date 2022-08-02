@@ -124,12 +124,16 @@ class Table(pd.DataFrame):
         if not isinstance(path, str) or not path.endswith(".parquet"):
             raise ValueError(f'filename must end in ".parquet": {path}')
 
+        # parquet can store the index, but repacking is wasted on index columns so
+        # we get rid of the index first
+        df = pd.DataFrame(self)
+        if self.primary_key:
+            df = df.reset_index()
+
         if repack:
             # use smaller data types wherever possible
             # NOTE: this can be slow for large dataframes
-            df = pd.DataFrame(self)
-        else:
-            df = self
+            df = repack_frame(df)
 
         # create a pyarrow table with metadata in the schema
         # (some metadata gets auto-generated to help pandas deserialise better, we want to keep that)
@@ -137,6 +141,7 @@ class Table(pd.DataFrame):
         new_metadata = {
             b"owid_table": json.dumps(self.metadata.to_dict(), default=str),  # type: ignore
             b"owid_fields": json.dumps(self._get_fields_as_dict(), default=str),
+            b"primary_key": json.dumps(self.primary_key),
             **t.schema.metadata,
         }
         schema = t.schema.with_metadata(new_metadata)
@@ -270,6 +275,9 @@ class Table(pd.DataFrame):
         if b"owid_fields" in t.schema.metadata:
             fields = json.loads(t.schema.metadata[b"owid_fields"])
             df._set_fields_from_dict(fields)
+        if b"primary_key" in t.schema.metadata:
+            primary_key = json.loads(t.schema.metadata[b"primary_key"])
+            df.set_index(primary_key, inplace=True)
 
         return df
 
