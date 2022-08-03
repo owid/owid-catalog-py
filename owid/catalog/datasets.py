@@ -199,7 +199,7 @@ class Dataset:
     @property
     def _data_files(self) -> List[str]:
         feather_pattern = join(self.path, "*.feather")
-        parquet_pattern = join(self.path, "*.feather")
+        parquet_pattern = join(self.path, "*.parquet")
         csv_pattern = join(self.path, "*.csv")
         return sorted(glob(feather_pattern) + glob(parquet_pattern) + glob(csv_pattern))
 
