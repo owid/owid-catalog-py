@@ -64,6 +64,38 @@ class Table(pd.DataFrame):
     def primary_key(self) -> List[str]:
         return [n for n in self.index.names if n]
 
+    def to(self, path: Union[str, Path]) -> None:
+        if isinstance(path, Path):
+            path = path.as_posix()
+
+        if path.endswith(".csv"):
+            return self.to_csv(path)
+
+        elif path.endswith(".feather"):
+            return self.to_feather(path)
+
+        elif path.endswith(".parquet"):
+            return self.to_parquet(path)
+
+        else:
+            raise ValueError(f"could not detect a suitable format to save to: {path}")
+
+    @classmethod
+    def read(cls, path: Union[str, Path]) -> "Table":
+        if isinstance(path, Path):
+            path = path.as_posix()
+
+        if path.endswith(".csv"):
+            return cls.read_csv(path)
+
+        elif path.endswith(".feather"):
+            return cls.read_feather(path)
+
+        elif path.endswith(".parquet"):
+            return cls.read_parquet(path)
+
+        raise ValueError(f"could not detect a suitable format to read from: {path}")
+
     # Mypy complaints about this not matching the defintiion of NDFrame.to_csv but I don't understand why
     def to_csv(self, path: Any, **kwargs: Any) -> None:  # type: ignore
         """
