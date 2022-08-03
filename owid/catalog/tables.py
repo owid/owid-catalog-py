@@ -64,18 +64,19 @@ class Table(pd.DataFrame):
     def primary_key(self) -> List[str]:
         return [n for n in self.index.names if n]
 
-    def to(self, path: Union[str, Path]) -> None:
+    def to(self, path: Union[str, Path], repack: bool = True) -> None:
         if isinstance(path, Path):
             path = path.as_posix()
 
         if path.endswith(".csv"):
+            # ignore repacking
             return self.to_csv(path)
 
         elif path.endswith(".feather"):
-            return self.to_feather(path)
+            return self.to_feather(path, repack=repack)
 
         elif path.endswith(".parquet"):
-            return self.to_parquet(path)
+            return self.to_parquet(path, repack=repack)
 
         else:
             raise ValueError(f"could not detect a suitable format to save to: {path}")
@@ -152,6 +153,9 @@ class Table(pd.DataFrame):
     def to_parquet(self, path: Any, repack: bool = True) -> None:  # type: ignore
         """
         Save this table as a parquet file with embedded metadata in the table schema.
+
+        NOTE: we save the metadata for fields in the table scheme, but it might be
+              possible with Parquet to store it in the fields themselves somehow
         """
         if not isinstance(path, str) or not path.endswith(".parquet"):
             raise ValueError(f'filename must end in ".parquet": {path}')
@@ -287,7 +291,7 @@ class Table(pd.DataFrame):
     @classmethod
     def read_parquet(cls, path: Union[str, Path]) -> "Table":
         """
-        Read the table from feather plus accompanying JSON sidecar.
+        Read the table from a parquet file, and unpack the schema metadata.
 
         The path may be a local file path or a URL.
         """

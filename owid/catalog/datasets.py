@@ -2,7 +2,7 @@
 #  datasets.py
 #
 
-from os.path import join, exists
+from os.path import join
 from os import mkdir
 from dataclasses import dataclass
 import shutil
@@ -21,8 +21,20 @@ from .meta import DatasetMeta, TableMeta
 from . import utils
 
 FileFormat = Literal["csv", "feather", "parquet"]
-ALLOWED_FORMATS: List[FileFormat] = ["csv", "feather", "parquet"]
+
+# the formats we can serialise and deserialise
+SUPPORTED_FORMATS: List[FileFormat] = ["csv", "feather", "parquet"]
+
+# the formats we generate by default
 DEFAULT_FORMATS: List[FileFormat] = ["feather", "parquet"]
+
+# the format we use by default if we only need one
+PREFERRED_FORMAT: FileFormat = "feather"
+
+# sanity checks
+assert set(DEFAULT_FORMATS).issubset(SUPPORTED_FORMATS)
+assert PREFERRED_FORMAT in DEFAULT_FORMATS
+assert PREFERRED_FORMAT in SUPPORTED_FORMATS
 
 
 @dataclass
@@ -69,11 +81,13 @@ class Dataset:
         formats: List[FileFormat] = DEFAULT_FORMATS,
         repack: bool = True,
     ) -> None:
-        """Add this table to the dataset by saving it in the dataset's folder. Defaults to
-        feather format but you can override this to csv by passing 'csv' for the format.
+        """
+        Add this table to the dataset by saving it in the dataset's folder. By default we
+        save in multiple formats, but if you need a specific one (e.g. CSV for explorers)
+        you can specify it.
 
         :param repack: if True, try to cast column types to the smallest possible type (e.g. float64 -> float32)
-            to reduce feather file size. Consider using False when your dataframe is large and the repack is failing.
+            to reduce binary file size. Consider using False when your dataframe is large and the repack is failing.
         """
 
         utils.validate_underscore(table.metadata.short_name, "Table's short_name")
@@ -84,46 +98,29 @@ class Dataset:
         table.metadata.dataset = self.metadata
 
         for format in formats:
-            if format not in ALLOWED_FORMATS:
+            if format not in SUPPORTED_FORMATS:
                 raise Exception(f"Format '{format}'' is not supported")
 
             table_filename = join(self.path, table.metadata.checked_name + f".{format}")
-
-            if format == "feather":
-                table.to_feather(table_filename, repack=repack)
-
-            elif format == "parquet":
-                table.to_parquet(table_filename, repack=repack)
-
-            elif format == "csv":
-                table.to_csv(table_filename)
-
-            else:
-                raise ValueError(f"Unknown format: {format}")
+            table.to(table_filename, repack=repack)
 
     def __getitem__(self, name: str) -> tables.Table:
         stem = self.path / Path(name)
 
-        feather_file = stem.with_suffix(".feather")
-        if feather_file.exists():
-            return tables.Table.read_feather(feather_file)
-
-        parquet_file = stem.with_suffix(".parquet")
-        if parquet_file.exists():
-            return tables.Table.read_parquet(parquet_file)
-
-        csv_file = stem.with_suffix(".csv")
-        if csv_file.exists():
-            return tables.Table.read_csv(csv_file)
+        for format in SUPPORTED_FORMATS:
+            path = stem.with_suffix(f".{format}")
+            if path.exists():
+                return tables.Table.read(path)
 
         raise KeyError(
             f"Table `{name}` not found, available tables: {', '.join(self.table_names)}"
         )
 
     def __contains__(self, name: str) -> bool:
-        feather_table_filename = join(self.path, name + ".feather")
-        csv_table_filename = join(self.path, name + ".csv")
-        return exists(feather_table_filename) or exists(csv_table_filename)
+        return any(
+            (Path(self.path) / name).with_suffix(f".{format}").exists()
+            for format in SUPPORTED_FORMATS
+        )
 
     def save(self) -> None:
         assert self.metadata.short_name, "Missing dataset short_name"
@@ -148,7 +145,7 @@ class Dataset:
             with open(metadata_file, "w") as ostream:
                 json.dump(table_meta, ostream, indent=2, default=str)
 
-    def index(self, catalog_path: Path) -> pd.DataFrame:
+    def index(self, catalog_path: Path = Path("/")) -> pd.DataFrame:
         """
         Return a DataFrame describing the contents of this dataset, one row per table.
         """
@@ -176,10 +173,9 @@ class Dataset:
             row["path"] = relative_path.as_posix()
             row["channel"] = relative_path.parts[0]
 
-            if table_path.with_suffix(".feather").exists():
-                row["format"] = "feather"
-            elif table_path.with_suffix(".csv").exists():
-                row["format"] = "csv"
+            row["formats"] = [  # type: ignore
+                f for f in SUPPORTED_FORMATS if table_path.with_suffix(f".{f}").exists()
+            ]
 
             rows.append(row)
 
@@ -198,10 +194,12 @@ class Dataset:
 
     @property
     def _data_files(self) -> List[str]:
-        feather_pattern = join(self.path, "*.feather")
-        parquet_pattern = join(self.path, "*.parquet")
-        csv_pattern = join(self.path, "*.csv")
-        return sorted(glob(feather_pattern) + glob(parquet_pattern) + glob(csv_pattern))
+        files = []
+        for format in SUPPORTED_FORMATS:
+            pattern = join(self.path, f"*.{format}")
+            files.extend(glob(pattern))
+
+        return sorted(files)
 
     @property
     def table_names(self) -> List[str]:
