@@ -309,7 +309,8 @@ class Table(pd.DataFrame):
             df._set_fields_from_dict(fields)
         if b"primary_key" in t.schema.metadata:
             primary_key = json.loads(t.schema.metadata[b"primary_key"])
-            df.set_index(primary_key, inplace=True)
+            if primary_key:
+                df.set_index(primary_key, inplace=True)
 
         return df
 
