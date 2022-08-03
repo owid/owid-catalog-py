@@ -65,6 +65,9 @@ class Table(pd.DataFrame):
         return [n for n in self.index.names if n]
 
     def to(self, path: Union[str, Path], repack: bool = True) -> None:
+        """
+        Save this table in one of our SUPPORTED_FORMATS.
+        """
         if isinstance(path, Path):
             path = path.as_posix()
 

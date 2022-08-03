@@ -22,8 +22,9 @@ from . import utils
 
 FileFormat = Literal["csv", "feather", "parquet"]
 
-# the formats we can serialise and deserialise
-SUPPORTED_FORMATS: List[FileFormat] = ["csv", "feather", "parquet"]
+# the formats we can serialise and deserialise; in some cases they
+# will be tried in this order if we don't specify one explicitly
+SUPPORTED_FORMATS: List[FileFormat] = ["feather", "parquet", "csv"]
 
 # the formats we generate by default
 DEFAULT_FORMATS: List[FileFormat] = ["feather", "parquet"]
@@ -34,7 +35,7 @@ PREFERRED_FORMAT: FileFormat = "feather"
 # sanity checks
 assert set(DEFAULT_FORMATS).issubset(SUPPORTED_FORMATS)
 assert PREFERRED_FORMAT in DEFAULT_FORMATS
-assert PREFERRED_FORMAT in SUPPORTED_FORMATS
+assert SUPPORTED_FORMATS[0] == PREFERRED_FORMAT
 
 
 @dataclass
