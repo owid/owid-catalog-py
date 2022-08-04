@@ -3,24 +3,24 @@
 #  owid-catalog-py
 #
 
-from pathlib import Path
-from typing import Dict, List, Optional, Iterator, Union, Any, cast, Literal, Iterable
+import heapq
 import json
 import os
 import re
-import heapq
-
-import pandas as pd
-import numpy as np
-import requests
 import tempfile
-import structlog
+from pathlib import Path
+from typing import Any, Dict, Iterable, Iterator, List, Literal, Optional, Union, cast
 from urllib.parse import urlparse
-import numpy.typing as npt
 
+import numpy as np
+import numpy.typing as npt
+import pandas as pd
+import requests
+import structlog
+
+from . import s3_utils
 from .datasets import PREFERRED_FORMAT, Dataset, FileFormat
 from .tables import Table
-from . import s3_utils
 
 log = structlog.get_logger()
 
@@ -357,7 +357,11 @@ class CatalogSeries(pd.Series):
         if hasattr(self, "format"):
             # backwards compatibility with existing indexes
             format = self.format
-        elif hasattr(self, "formats") and self.formats:
+        elif (
+            hasattr(self, "formats")
+            and (self.formats is not None)
+            and len(self.formats) > 0
+        ):
             format = (
                 PREFERRED_FORMAT
                 if PREFERRED_FORMAT in self.formats
