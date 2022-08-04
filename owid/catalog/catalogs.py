@@ -18,7 +18,7 @@ import structlog
 from urllib.parse import urlparse
 import numpy.typing as npt
 
-from .datasets import Dataset, FileFormat
+from .datasets import PREFERRED_FORMAT, Dataset, FileFormat
 from .tables import Table
 from . import s3_utils
 
@@ -132,7 +132,7 @@ class LocalCatalog(CatalogMixin):
         )
 
     def _catalog_channel_file(
-        self, channel: CHANNEL, format: FileFormat = "feather"
+        self, channel: CHANNEL, format: FileFormat = PREFERRED_FORMAT
     ) -> Path:
         return self.path / f"catalog-{channel}.{format}"
 
@@ -145,15 +145,12 @@ class LocalCatalog(CatalogMixin):
         Read selected channels from local path.
         """
         df = pd.concat(
-            [
-                pd.read_feather(self._catalog_channel_file(channel))
-                for channel in channels
-            ]
+            [read_frame(self._catalog_channel_file(channel)) for channel in channels]
         )
         df.dimensions = df.dimensions.map(
             lambda s: json.loads(s) if isinstance(s, str) else s
         )
-        return cast(pd.DataFrame, df)
+        return df
 
     def iter_datasets(
         self, channel: CHANNEL, include: Optional[str] = None
@@ -175,8 +172,10 @@ class LocalCatalog(CatalogMixin):
                     heapq.heappush(to_search, child)
 
     def reindex(self, include: Optional[str] = None) -> None:
-        """Walk the directory tree, generate a channel/namespace/version/dataset/table frame
-        and save it to feather."""
+        """
+        Walk the directory tree, generate a channel/namespace/version/dataset/table frame
+        and save it to each of our index formats.
+        """
         index = self._scan_for_datasets(include)
 
         if include:
@@ -215,15 +214,7 @@ class LocalCatalog(CatalogMixin):
             channel_frame = frame[frame.channel == channel].reset_index(drop=True)
             for format in INDEX_FORMATS:
                 filename = self._catalog_channel_file(channel, format)
-
-                if format == "feather":
-                    channel_frame.to_feather(filename)
-
-                elif format == "parquet":
-                    channel_frame.to_parquet(filename)
-
-                else:
-                    raise ValueError(f"unsupported format: {format}")
+                save_frame(channel_frame, filename)
 
         # add a catalog version number that we can use to tell old clients to update
         self._save_metadata({"format_version": OWID_CATALOG_VERSION})
@@ -296,17 +287,11 @@ class RemoteCatalog(CatalogMixin):
         """
         Read selected channels from S3.
         """
-        # prefer to read in feather, since it's the most compact format
-        assert "feather" in INDEX_FORMATS
-
-        return cast(
-            pd.DataFrame,
-            pd.concat(
-                [
-                    pd.read_feather(uri + f"catalog-{channel}.feather")
-                    for channel in channels
-                ]
-            ),
+        return pd.concat(
+            [
+                read_frame(uri + f"catalog-{channel}.{PREFERRED_FORMAT}")
+                for channel in channels
+            ]
         )
 
 
@@ -354,6 +339,11 @@ class CatalogFrame(pd.DataFrame):
 
 
 class CatalogSeries(pd.Series):
+    """
+    A row from the catalog representing a single dataset. We subclass Series
+    in order to add a `load()` method onto it that will fetch and return a Table.
+    """
+
     _metadata = ["_base_uri"]
 
     @property
@@ -361,21 +351,29 @@ class CatalogSeries(pd.Series):
         return CatalogSeries
 
     def load(self) -> Table:
-        if self.path and self.format and self._base_uri:
+        # determine what format to use for this table; old indexes gave one format,
+        # new ones give multiple to choose from
+        format = None
+        if hasattr(self, "format"):
+            # backwards compatibility with existing indexes
+            format = self.format
+        elif hasattr(self, "formats") and self.formats:
+            format = (
+                PREFERRED_FORMAT
+                if PREFERRED_FORMAT in self.formats
+                else self.formats[0]
+            )
+
+        if self.path and format and self._base_uri:
             with tempfile.TemporaryDirectory() as tmpdir:
-                uri = self._base_uri + self.path + "." + self.format
+                uri = self._base_uri + self.path + "." + format
 
                 # download the data locally first if the file is private
                 # keep backward compatibility
                 if not getattr(self, "is_public", True):
                     uri = _download_private_file(uri, tmpdir)
 
-                if self.format == "feather":
-                    return Table.read_feather(uri)
-                elif self.format == "csv":
-                    return Table.read_csv(uri)
-                else:
-                    raise ValueError("unknown format")
+                return Table.read(uri)
 
         raise ValueError("series is not a table spec")
 
@@ -423,3 +421,34 @@ def _download_private_file(uri: str, tmpdir: str) -> str:
 
 class PackageUpdateRequired(Exception):
     pass
+
+
+def read_frame(uri: Union[str, Path]) -> pd.DataFrame:
+    if isinstance(uri, Path):
+        uri = str(uri)
+
+    if uri.endswith(".feather"):
+        return cast(pd.DataFrame, pd.read_feather(uri))
+
+    elif uri.endswith(".parquet"):
+        return cast(pd.DataFrame, pd.read_parquet(uri))
+
+    elif uri.endswith(".csv"):
+        return pd.read_csv(uri)
+
+    raise ValueError(f"could not detect format of uri: {uri}")
+
+
+def save_frame(df: pd.DataFrame, path: Union[str, Path]) -> None:
+    path = str(path)
+    if path.endswith(".feather"):
+        df.to_feather(path)
+
+    elif path.endswith(".parquet"):
+        df.to_parquet(path)
+
+    elif path.endswith(".csv"):
+        df.to_csv(path)
+
+    else:
+        raise ValueError(f"could not detect what format to write to: {path}")

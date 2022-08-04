@@ -30,12 +30,14 @@ def test_create_empty():
     with temp_dataset_dir(create=True) as dirname:
         shutil.rmtree(dirname)
 
-        Dataset.create_empty(dirname)
+        ds = Dataset.create_empty(dirname)
 
         assert exists(join(dirname, "index.json"))
         with open(join(dirname, "index.json")) as istream:
             doc = json.load(istream)
         assert doc == {"is_public": True}
+
+        assert len(ds.index()) == 0
 
 
 def test_create_empty_with_metadata(tmpdir):
@@ -85,6 +87,11 @@ def test_add_table():
         ]
         for filename in table_files:
             assert exists(filename)
+
+        # check other methods on Dataset
+        assert len(ds) == 1
+        assert len(ds.index()) == 1
+        assert t.metadata.checked_name in ds
 
         # load a fresh copy from disk
         t2 = ds[t.metadata.checked_name]

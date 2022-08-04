@@ -2,7 +2,7 @@
 #  test_tables.py
 #
 
-from typing import Literal
+from owid.catalog.datasets import FileFormat
 from owid.catalog.variables import Variable
 import tempfile
 from os.path import join, exists, splitext
@@ -86,49 +86,39 @@ def test_saving_empty_table_fails():
 
 
 # The parametrize decorator runs this test multiple times with different formats
-@pytest.mark.parametrize("format", ["csv", "feather"])
-def test_round_trip_no_metadata(format: Literal["csv", "feather"]) -> None:
+@pytest.mark.parametrize("format", ["csv", "feather", "parquet"])
+def test_round_trip_no_metadata(format: FileFormat) -> None:
     t1 = Table({"gdp": [100, 102, 104, 100], "countries": ["AU", "SE", "NA", "💡"]})
     with tempfile.TemporaryDirectory() as path:
         filename = join(path, f"table.{format}")
-        if format == "feather":
-            t1.to_feather(filename)
-        else:
-            t1.to_csv(filename)
+        t1.to(filename)
 
         assert exists(filename)
-        assert exists(splitext(filename)[0] + ".meta.json")
+        if format in ["csv", "feather"]:
+            assert exists(splitext(filename)[0] + ".meta.json")
 
-        if format == "feather":
-            t2 = Table.read_feather(filename)
-        else:
-            t2 = Table.read_csv(filename)
+        t2 = Table.read(filename)
         assert_tables_eq(t1, t2)
 
 
-@pytest.mark.parametrize("format", ["csv", "feather"])
-def test_round_trip_with_index(format: Literal["csv", "feather"]) -> None:
+@pytest.mark.parametrize("format", ["csv", "feather", "parquet"])
+def test_round_trip_with_index(format: FileFormat) -> None:
     t1 = Table({"gdp": [100, 102, 104], "country": ["AU", "SE", "NA"]})
     t1.set_index("country", inplace=True)
     with tempfile.TemporaryDirectory() as path:
         filename = join(path, f"table.{format}")
-        if format == "feather":
-            t1.to_feather(filename)
-        else:
-            t1.to_csv(filename)
+        t1.to(filename)
 
         assert exists(filename)
-        assert exists(splitext(filename)[0] + ".meta.json")
+        if format in ["csv", "feather"]:
+            assert exists(splitext(filename)[0] + ".meta.json")
 
-        if format == "feather":
-            t2 = Table.read_feather(filename)
-        else:
-            t2 = Table.read_csv(filename)
+        t2 = Table.read(filename)
         assert_tables_eq(t1, t2)
 
 
-@pytest.mark.parametrize("format", ["csv", "feather"])
-def test_round_trip_with_metadata(format: Literal["csv", "feather"]) -> None:
+@pytest.mark.parametrize("format", ["csv", "feather", "parquet"])
+def test_round_trip_with_metadata(format: FileFormat) -> None:
     t1 = Table({"gdp": [100, 102, 104], "country": ["AU", "SE", "NA"]})
     t1.set_index("country", inplace=True)
     t1.title = "A very special table"
@@ -136,18 +126,13 @@ def test_round_trip_with_metadata(format: Literal["csv", "feather"]) -> None:
 
     with tempfile.TemporaryDirectory() as path:
         filename = join(path, f"table.{format}")
-        if format == "feather":
-            t1.to_feather(filename)
-        else:
-            t1.to_csv(filename)
+        t1.to(filename)
 
         assert exists(filename)
-        assert exists(splitext(filename)[0] + ".meta.json")
+        if format in ["csv", "feather"]:
+            assert exists(splitext(filename)[0] + ".meta.json")
 
-        if format == "feather":
-            t2 = Table.read_feather(filename)
-        else:
-            t2 = Table.read_csv(filename)
+        t2 = Table.read(filename)
         assert_tables_eq(t1, t2)
 
 
