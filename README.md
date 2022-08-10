@@ -214,7 +214,10 @@ t = Table.read_csv('/tmp/my_table.csv')
 
 ## Changelog
 
-- `master`
+- `v0.3.0`
+  - Update `OWID_CATALOG_VERSION` to 3
+  - Support multiple formats per table
+  - Support reading and writing `parquet` files with embedded metadata
   - Optional `repack` argument when adding tables to dataset
   - Underscore `|`
   - Get `version` field from `DatasetMeta` init

@@ -25,7 +25,7 @@ from .tables import Table
 log = structlog.get_logger()
 
 # increment this on breaking changes to require clients to update
-OWID_CATALOG_VERSION = 2
+OWID_CATALOG_VERSION = 3
 
 # location of the default remote catalog
 OWID_CATALOG_URI = "https://catalog.ourworldindata.org/"
