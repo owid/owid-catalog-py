@@ -2,14 +2,14 @@
 #  variables.py
 #
 
-from os import path
 import json
+from os import path
 from typing import Any, Dict, Optional, cast
 
 import pandas as pd
 
-from .properties import metadata_property
 from .meta import VariableMeta
+from .properties import metadata_property
 
 SCHEMA = json.load(open(path.join(path.dirname(__file__), "schemas", "table.json")))
 METADATA_FIELDS = list(SCHEMA["properties"])

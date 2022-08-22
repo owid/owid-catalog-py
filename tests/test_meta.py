@@ -2,8 +2,8 @@
 #  test_meta.py
 #
 
-from typing import Optional, Dict, Any
 from dataclasses import dataclass
+from typing import Any, Dict, Optional
 
 from dataclasses_json import dataclass_json
 

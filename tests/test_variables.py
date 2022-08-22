@@ -4,8 +4,8 @@
 
 import pytest
 
-from owid.catalog.variables import Variable
 from owid.catalog.meta import VariableMeta
+from owid.catalog.variables import Variable
 
 
 def test_create_empty_variable() -> None:

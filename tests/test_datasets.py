@@ -2,22 +2,23 @@
 #  test_datasets.py
 #
 
-import tempfile
-from os.path import join, exists
-from os import rmdir
 import json
-import shutil
-from contextlib import contextmanager
-from typing import Iterator, Union
 import random
+import shutil
+import tempfile
+from contextlib import contextmanager
 from glob import glob
+from os import rmdir
+from os.path import exists, join
 from pathlib import Path
+from typing import Iterator, Union
 
 import pytest
 
 from owid.catalog import Dataset, DatasetMeta
-from .test_tables import mock_table
+
 from .mocking import mock
+from .test_tables import mock_table
 
 
 def test_dataset_fails_to_load_empty_folder():

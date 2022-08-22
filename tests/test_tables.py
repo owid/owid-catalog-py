@@ -2,19 +2,20 @@
 #  test_tables.py
 #
 
-from owid.catalog.datasets import FileFormat
-from owid.catalog.variables import Variable
-import tempfile
-from os.path import join, exists, splitext
 import json
+import tempfile
+from os.path import exists, join, splitext
 
 import jsonschema
-import pytest
-import pandas as pd
 import numpy as np
+import pandas as pd
+import pytest
 
-from owid.catalog.tables import Table, SCHEMA
-from owid.catalog.meta import VariableMeta, TableMeta
+from owid.catalog.datasets import FileFormat
+from owid.catalog.meta import TableMeta, VariableMeta
+from owid.catalog.tables import SCHEMA, Table
+from owid.catalog.variables import Variable
+
 from .mocking import mock
 
 

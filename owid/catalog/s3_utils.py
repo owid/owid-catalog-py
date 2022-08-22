@@ -2,15 +2,14 @@
 It would make sense to move both into a shared module in the future or use some proper public library
 for working with S3 that is compatible with DigitalOcean's Spaces.
 """
+import logging
 import os
 from os import path
-import logging
-from typing import Tuple, Any
+from typing import Any, Tuple
 from urllib.parse import urlparse
 
 import boto3
 from botocore.exceptions import ClientError
-
 
 SPACES_ENDPOINT = "https://nyc3.digitaloceanspaces.com"
 S3_BASE = "s3://walden.nyc3.digitaloceanspaces.com"

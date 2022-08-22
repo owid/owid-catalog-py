@@ -1,8 +1,9 @@
 import re
+from typing import List, Literal, Optional, overload
+
 import numpy as np
-from typing import Optional, List, Literal, overload
-from unidecode import unidecode
 import pandas as pd
+from unidecode import unidecode
 
 from .tables import Table
 from .variables import Variable

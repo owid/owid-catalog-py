@@ -2,10 +2,9 @@
 #  mocking.py
 #
 
-from typing import Any, Union
 import datetime as dt
 import random
-
+from typing import Any, Union
 
 _MOCK_STRINGS = [
     "alpha",
