@@ -4,12 +4,12 @@
 #  Metadata helpers.
 #
 
-from pathlib import Path
-from typing import Optional, TypeVar, Dict, Any, List, Union
-from dataclasses import dataclass, field
 import json
-import yaml
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any, Dict, List, Optional, TypeVar, Union
 
+import yaml
 from dataclasses_json import dataclass_json
 
 T = TypeVar("T")

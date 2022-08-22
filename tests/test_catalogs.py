@@ -3,16 +3,15 @@
 #
 
 import tempfile
-from typing import Optional, Iterator, Iterable
 from contextlib import contextmanager
 from pathlib import Path
+from typing import Iterable, Iterator, Optional
 
 import pytest  # noqa
 
-from owid.catalog import RemoteCatalog, LocalCatalog, Table, CHANNEL, find
+from owid.catalog import CHANNEL, LocalCatalog, RemoteCatalog, Table, find
 
 from .test_datasets import create_temp_dataset
-
 
 _catalog: Optional[RemoteCatalog] = None
 

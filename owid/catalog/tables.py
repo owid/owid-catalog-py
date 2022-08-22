@@ -2,26 +2,23 @@
 #  tables.py
 #
 
-from os.path import join, dirname, splitext
-import json
 import copy
-import yaml
-from typing import Any, Literal, Optional, List, Dict, Union, cast
+import json
 from collections import defaultdict
+from os.path import dirname, join, splitext
 from pathlib import Path
+from typing import Any, Dict, List, Literal, Optional, Union, cast
 
 import pandas as pd
 import pyarrow
 import pyarrow.parquet as pq
 import requests
+import yaml
+from pandas.util._decorators import rewrite_axis_style_signature
 
 from . import variables
-from .meta import VariableMeta, TableMeta
 from .frames import repack_frame
-
-from pandas.util._decorators import (
-    rewrite_axis_style_signature,
-)
+from .meta import TableMeta, VariableMeta
 
 SCHEMA = json.load(open(join(dirname(__file__), "schemas", "table.json")))
 METADATA_FIELDS = list(SCHEMA["properties"])

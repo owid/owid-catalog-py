@@ -214,6 +214,8 @@ t = Table.read_csv('/tmp/my_table.csv')
 
 ## Changelog
 
+- `master`
+  - Sort imports with `isort`
 - `v0.3.0`
   - Update `OWID_CATALOG_VERSION` to 3
   - Support multiple formats per table

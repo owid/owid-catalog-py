@@ -2,23 +2,22 @@
 #  datasets.py
 #
 
-from os.path import join
-from os import mkdir
-from dataclasses import dataclass
+import hashlib
+import json
 import shutil
 import warnings
-from typing import Any, Iterator, List, Literal, Optional, Union
+from dataclasses import dataclass
 from glob import glob
-import hashlib
+from os import mkdir
+from os.path import join
 from pathlib import Path
-import json
+from typing import Any, Iterator, List, Literal, Optional, Union
 
 import pandas as pd
 
-from . import tables
-from .properties import metadata_property
+from . import tables, utils
 from .meta import DatasetMeta, TableMeta
-from . import utils
+from .properties import metadata_property
 
 FileFormat = Literal["csv", "feather", "parquet"]
 
