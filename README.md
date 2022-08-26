@@ -216,6 +216,7 @@ t = Table.read_csv('/tmp/my_table.csv')
 
 - `master`
   - Sort imports with `isort`
+  - Change black line length to 120
 - `v0.3.0`
   - Update `OWID_CATALOG_VERSION` to 3
   - Support multiple formats per table
