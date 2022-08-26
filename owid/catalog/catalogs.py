@@ -57,7 +57,7 @@ class CatalogMixin:
         namespace: Optional[str] = None,
         version: Optional[str] = None,
         dataset: Optional[str] = None,
-        channel: Optional[CHANNEL] = None,
+        channels: Optional[Iterable[CHANNEL]] = None,
     ) -> "CatalogFrame":
         criteria: npt.ArrayLike = np.ones(len(self.frame), dtype=bool)
 
@@ -73,12 +73,13 @@ class CatalogMixin:
         if dataset:
             criteria &= self.frame.dataset == dataset
 
-        if channel:
-            if channel not in self.channels:
-                raise ValueError(
-                    f"You need to add `{channel}` to channels in Catalog init (only `{self.channels}` are loaded now)"
-                )
-            criteria &= self.frame.channel == channel
+        if channels:
+            for channel in channels:
+                if channel not in self.channels:
+                    raise ValueError(
+                        f"You need to add `{channel}` to channels in Catalog init (only `{self.channels}` are loaded now)"
+                    )
+            criteria &= self.frame.channel.isin(channels)
 
         matches = self.frame[criteria]
         if "checksum" in matches.columns:
@@ -367,7 +368,7 @@ def find(
     if not REMOTE_CATALOG:
         REMOTE_CATALOG = RemoteCatalog(channels=channels)
 
-    return REMOTE_CATALOG.find(table=table, namespace=namespace, version=version, dataset=dataset)
+    return REMOTE_CATALOG.find(table=table, namespace=namespace, version=version, dataset=dataset, channels=channels)
 
 
 def find_one(*args: Optional[str], **kwargs: Optional[str]) -> Table:

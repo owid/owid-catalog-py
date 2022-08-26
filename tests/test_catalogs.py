@@ -64,6 +64,11 @@ def test_local_default_channel():
         assert set(catalog.find().channel) == {"garden", "meadow"}
 
 
+def test_local_select_catalog():
+    with mock_catalog(1, channels=("garden", "meadow")) as catalog:
+        assert set(catalog.find(channels=["meadow"]).channel) == {"meadow"}
+
+
 def test_calling_find_adds_channels():
     find("abc")
     from owid.catalog.catalogs import REMOTE_CATALOG
