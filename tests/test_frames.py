@@ -13,9 +13,7 @@ from owid.catalog import frames
 
 
 def test_repack_non_object_columns():
-    df = pd.DataFrame(
-        {"myint": [1, 2, 3], "myfloat": [1.0, 2.2, 3.0], "mycat": ["a", "b", "c"]}
-    )
+    df = pd.DataFrame({"myint": [1, 2, 3], "myfloat": [1.0, 2.2, 3.0], "mycat": ["a", "b", "c"]})
     df["mycat"] = df["mycat"].astype("category")
 
     df2 = df.copy()

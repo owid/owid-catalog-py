@@ -20,9 +20,7 @@ def pruned_json(cls: T) -> T:
 
     # only keep non-null public variables
     cls.to_dict = lambda self, **kwargs: {  # type: ignore
-        k: v
-        for k, v in orig(self, **kwargs).items()
-        if not k.startswith("_") and v not in [None, [], {}]
+        k: v for k, v in orig(self, **kwargs).items() if not k.startswith("_") and v not in [None, [], {}]
     }
 
     return cls

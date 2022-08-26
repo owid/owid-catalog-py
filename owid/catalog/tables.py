@@ -45,9 +45,7 @@ class Table(pd.DataFrame):
     def _constructor_sliced(self) -> Any:
         return variables.Variable
 
-    def __init__(
-        self, *args: Any, metadata: Optional[TableMeta] = None, **kwargs: Any
-    ) -> None:
+    def __init__(self, *args: Any, metadata: Optional[TableMeta] = None, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
         # empty table metadata by default
@@ -135,9 +133,7 @@ class Table(pd.DataFrame):
         if self.primary_key:
             overlapping_names = set(self.index.names) & set(self.columns)
             if overlapping_names:
-                raise ValueError(
-                    f"index names are overlapping with column names: {overlapping_names}"
-                )
+                raise ValueError(f"index names are overlapping with column names: {overlapping_names}")
             df = df.reset_index()
 
         if repack:
@@ -206,9 +202,7 @@ class Table(pd.DataFrame):
             raise ValueError(f'filename must end in ".csv": {path}')
 
         # load the data
-        df = Table(
-            pd.read_csv(path, index_col=False, na_values=[""], keep_default_na=False)
-        )
+        df = Table(pd.read_csv(path, index_col=False, na_values=[""], keep_default_na=False))
 
         # load the metadata
         metadata = cls._read_metadata(path)
@@ -217,9 +211,7 @@ class Table(pd.DataFrame):
         fields = metadata.pop("fields") if "fields" in metadata else {}
 
         df.metadata = TableMeta(**metadata)
-        df._fields = defaultdict(
-            VariableMeta, {k: VariableMeta.from_dict(v) for k, v in fields.items()}
-        )
+        df._fields = defaultdict(VariableMeta, {k: VariableMeta.from_dict(v) for k, v in fields.items()})
 
         if primary_key:
             df.set_index(primary_key, inplace=True)
@@ -322,9 +314,7 @@ class Table(pd.DataFrame):
         return {col: self._fields[col].to_dict() for col in self.all_columns}
 
     def _set_fields_from_dict(self, fields: Dict[str, Any]) -> None:
-        self._fields = defaultdict(
-            VariableMeta, {k: VariableMeta.from_dict(v) for k, v in fields.items()}
-        )
+        self._fields = defaultdict(VariableMeta, {k: VariableMeta.from_dict(v) for k, v in fields.items()})
 
     @staticmethod
     def _read_metadata(data_path: str) -> Dict[str, Any]:
@@ -347,11 +337,7 @@ class Table(pd.DataFrame):
                 self._fields[key] = VariableMeta()
 
     def equals_table(self, rhs: "Table") -> bool:
-        return (
-            isinstance(rhs, Table)
-            and self.metadata == rhs.metadata
-            and self.to_dict() == rhs.to_dict()
-        )
+        return isinstance(rhs, Table) and self.metadata == rhs.metadata and self.to_dict() == rhs.to_dict()
 
     @rewrite_axis_style_signature(
         "mapper",
@@ -387,9 +373,7 @@ class Table(pd.DataFrame):
         combined: List[str] = filter(None, list(self.index.names) + list(self.columns))  # type: ignore
         return combined
 
-    def update_metadata_from_yaml(
-        self, path: Union[Path, str], table_name: str
-    ) -> None:
+    def update_metadata_from_yaml(self, path: Union[Path, str], table_name: str) -> None:
         """Update metadata of table and variables from a YAML file."""
         with open(path) as istream:
             annot = yaml.safe_load(istream)

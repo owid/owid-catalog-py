@@ -56,9 +56,7 @@ class Dataset:
         self.metadata = DatasetMeta.load(self._index_file)
 
     @classmethod
-    def create_empty(
-        cls, path: Union[str, Path], metadata: Optional["DatasetMeta"] = None
-    ) -> "Dataset":
+    def create_empty(cls, path: Union[str, Path], metadata: Optional["DatasetMeta"] = None) -> "Dataset":
         path = Path(path)
 
         if path.is_dir():
@@ -112,15 +110,10 @@ class Dataset:
             if path.exists():
                 return tables.Table.read(path)
 
-        raise KeyError(
-            f"Table `{name}` not found, available tables: {', '.join(self.table_names)}"
-        )
+        raise KeyError(f"Table `{name}` not found, available tables: {', '.join(self.table_names)}")
 
     def __contains__(self, name: str) -> bool:
-        return any(
-            (Path(self.path) / name).with_suffix(f".{format}").exists()
-            for format in SUPPORTED_FORMATS
-        )
+        return any((Path(self.path) / name).with_suffix(f".{format}").exists() for format in SUPPORTED_FORMATS)
 
     def save(self) -> None:
         assert self.metadata.short_name, "Missing dataset short_name"
@@ -173,9 +166,7 @@ class Dataset:
             row["path"] = relative_path.as_posix()
             row["channel"] = relative_path.parts[0]
 
-            row["formats"] = [  # type: ignore
-                f for f in SUPPORTED_FORMATS if table_path.with_suffix(f".{f}").exists()
-            ]
+            row["formats"] = [f for f in SUPPORTED_FORMATS if table_path.with_suffix(f".{f}").exists()]  # type: ignore
 
             rows.append(row)
 

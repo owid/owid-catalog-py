@@ -37,9 +37,7 @@ S3_OWID_URI = "s3://owid-catalog"
 REMOTE_CATALOG: Optional["RemoteCatalog"] = None
 
 # available channels in the catalog
-CHANNEL = Literal[
-    "garden", "meadow", "backport", "open_numbers", "examples", "explorers"
-]
+CHANNEL = Literal["garden", "meadow", "backport", "open_numbers", "examples", "explorers"]
 
 # what formats should we for our index of available datasets?
 INDEX_FORMATS: List[FileFormat] = ["feather", "parquet"]
@@ -112,9 +110,7 @@ class LocalCatalog(CatalogMixin):
 
     path: Path
 
-    def __init__(
-        self, path: Union[str, Path], channels: Iterable[CHANNEL] = ("garden",)
-    ) -> None:
+    def __init__(self, path: Union[str, Path], channels: Iterable[CHANNEL] = ("garden",)) -> None:
         self.path = Path(path)
         self.channels = channels
         if self._catalog_exists(channels):
@@ -127,13 +123,9 @@ class LocalCatalog(CatalogMixin):
         # ensure the frame knows where to load data from
 
     def _catalog_exists(self, channels: Iterable[CHANNEL]) -> bool:
-        return all(
-            [self._catalog_channel_file(channel).exists() for channel in channels]
-        )
+        return all([self._catalog_channel_file(channel).exists() for channel in channels])
 
-    def _catalog_channel_file(
-        self, channel: CHANNEL, format: FileFormat = PREFERRED_FORMAT
-    ) -> Path:
+    def _catalog_channel_file(self, channel: CHANNEL, format: FileFormat = PREFERRED_FORMAT) -> Path:
         return self.path / f"catalog-{channel}.{format}"
 
     @property
@@ -144,17 +136,11 @@ class LocalCatalog(CatalogMixin):
         """
         Read selected channels from local path.
         """
-        df = pd.concat(
-            [read_frame(self._catalog_channel_file(channel)) for channel in channels]
-        )
-        df.dimensions = df.dimensions.map(
-            lambda s: json.loads(s) if isinstance(s, str) else s
-        )
+        df = pd.concat([read_frame(self._catalog_channel_file(channel)) for channel in channels])
+        df.dimensions = df.dimensions.map(lambda s: json.loads(s) if isinstance(s, str) else s)
         return df
 
-    def iter_datasets(
-        self, channel: CHANNEL, include: Optional[str] = None
-    ) -> Iterator[Dataset]:
+    def iter_datasets(self, channel: CHANNEL, include: Optional[str] = None) -> Iterator[Dataset]:
         to_search = [self.path / channel]
         if not to_search[0].exists():
             return
@@ -188,9 +174,7 @@ class LocalCatalog(CatalogMixin):
         index.version = index.version.astype(str)
 
         # make sure dimensions json is loaded
-        index.dimensions = index.dimensions.map(
-            lambda s: json.loads(s) if isinstance(s, str) else s
-        )
+        index.dimensions = index.dimensions.map(lambda s: json.loads(s) if isinstance(s, str) else s)
 
         self._save_index(index)
         self.frame = index
@@ -253,9 +237,7 @@ class LocalCatalog(CatalogMixin):
 class RemoteCatalog(CatalogMixin):
     uri: str
 
-    def __init__(
-        self, uri: str = OWID_CATALOG_URI, channels: Iterable[CHANNEL] = ("garden",)
-    ) -> None:
+    def __init__(self, uri: str = OWID_CATALOG_URI, channels: Iterable[CHANNEL] = ("garden",)) -> None:
         self.uri = uri
         self.channels = channels
         self.metadata = self._read_metadata(self.uri + "catalog.meta.json")
@@ -287,12 +269,7 @@ class RemoteCatalog(CatalogMixin):
         """
         Read selected channels from S3.
         """
-        return pd.concat(
-            [
-                read_frame(uri + f"catalog-{channel}.{PREFERRED_FORMAT}")
-                for channel in channels
-            ]
-        )
+        return pd.concat([read_frame(uri + f"catalog-{channel}.{PREFERRED_FORMAT}") for channel in channels])
 
 
 class CatalogFrame(pd.DataFrame):
@@ -357,16 +334,8 @@ class CatalogSeries(pd.Series):
         if hasattr(self, "format"):
             # backwards compatibility with existing indexes
             format = self.format
-        elif (
-            hasattr(self, "formats")
-            and (self.formats is not None)
-            and len(self.formats) > 0
-        ):
-            format = (
-                PREFERRED_FORMAT
-                if PREFERRED_FORMAT in self.formats
-                else self.formats[0]
-            )
+        elif hasattr(self, "formats") and (self.formats is not None) and len(self.formats) > 0:
+            format = PREFERRED_FORMAT if PREFERRED_FORMAT in self.formats else self.formats[0]
 
         if self.path and format and self._base_uri:
             with tempfile.TemporaryDirectory() as tmpdir:
@@ -393,16 +362,12 @@ def find(
 
     # add channel if missing and reinit remote catalog
     if REMOTE_CATALOG and not (set(channels) <= set(REMOTE_CATALOG.channels)):
-        REMOTE_CATALOG = RemoteCatalog(
-            channels=list(set(REMOTE_CATALOG.channels) | set(channels))
-        )
+        REMOTE_CATALOG = RemoteCatalog(channels=list(set(REMOTE_CATALOG.channels) | set(channels)))
 
     if not REMOTE_CATALOG:
         REMOTE_CATALOG = RemoteCatalog(channels=channels)
 
-    return REMOTE_CATALOG.find(
-        table=table, namespace=namespace, version=version, dataset=dataset
-    )
+    return REMOTE_CATALOG.find(table=table, namespace=namespace, version=version, dataset=dataset)
 
 
 def find_one(*args: Optional[str], **kwargs: Optional[str]) -> Table:

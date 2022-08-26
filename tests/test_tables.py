@@ -31,9 +31,7 @@ def test_add_table_metadata():
     # write some metadata
     t.metadata.short_name = "my_table"
     t.metadata.title = "My table indeed"
-    t.metadata.description = (
-        "## Well...\n\nI discovered this table in the Summer of '63..."
-    )
+    t.metadata.description = "## Well...\n\nI discovered this table in the Summer of '63..."
 
     # metadata persists with slicing
     t2 = t.iloc[:2]
@@ -195,9 +193,7 @@ def test_field_access_can_be_typecast():
 
 def test_tables_can_drop_duplicates():
     # https://github.com/owid/owid-catalog-py/issues/11
-    t: Table = Table(
-        {"gdp": [100, 100, 102, 104], "country": ["AU", "AU", "SE", "CH"]}
-    ).set_index(
+    t: Table = Table({"gdp": [100, 100, 102, 104], "country": ["AU", "AU", "SE", "CH"]}).set_index(
         "country"
     )  # type: ignore
     t.metadata = mock(TableMeta)
@@ -225,9 +221,7 @@ def assert_tables_eq(lhs: Table, rhs: Table) -> None:
 
 
 def mock_table() -> Table:
-    t: Table = Table({"gdp": [100, 102, 104], "country": ["AU", "SE", "CH"]}).set_index(
-        "country"
-    )  # type: ignore
+    t: Table = Table({"gdp": [100, 102, 104], "country": ["AU", "SE", "CH"]}).set_index("country")  # type: ignore
     t.metadata = mock(TableMeta)
     t.metadata.primary_key = ["country"]
     for col in t.all_columns:
@@ -237,15 +231,11 @@ def mock_table() -> Table:
 
 
 def test_load_csv_table_over_http() -> None:
-    Table.read_csv(
-        "http://owid-catalog.nyc3.digitaloceanspaces.com/reference/countries_regions.csv"
-    )
+    Table.read_csv("http://owid-catalog.nyc3.digitaloceanspaces.com/reference/countries_regions.csv")
 
 
 def test_rename_columns() -> None:
-    t: Table = Table({"gdp": [100, 102, 104], "country": ["AU", "SE", "CH"]}).set_index(
-        "country"
-    )  # type: ignore
+    t: Table = Table({"gdp": [100, 102, 104], "country": ["AU", "SE", "CH"]}).set_index("country")  # type: ignore
     t.gdp.metadata.title = "GDP"
     new_t = t.rename(columns={"gdp": "new_gdp"})
     assert new_t.new_gdp.metadata.title == "GDP"
@@ -256,9 +246,7 @@ def test_rename_columns() -> None:
 
 
 def test_rename_columns_inplace() -> None:
-    t: Table = Table({"gdp": [100, 102, 104], "country": ["AU", "SE", "CH"]}).set_index(
-        "country"
-    )  # type: ignore
+    t: Table = Table({"gdp": [100, 102, 104], "country": ["AU", "SE", "CH"]}).set_index("country")  # type: ignore
     t.gdp.metadata.title = "GDP"
     t.rename(columns={"gdp": "new_gdp"}, inplace=True)
     assert t.new_gdp.metadata.title == "GDP"

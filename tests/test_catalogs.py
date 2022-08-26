@@ -99,9 +99,7 @@ def test_reindex_with_include():
 
 
 @contextmanager
-def mock_catalog(
-    n: int = 3, channels: Iterable[CHANNEL] = ("garden",)
-) -> Iterator[LocalCatalog]:
+def mock_catalog(n: int = 3, channels: Iterable[CHANNEL] = ("garden",)) -> Iterator[LocalCatalog]:
     with tempfile.TemporaryDirectory() as dirname:
         path = Path(dirname)
         for channel in channels:
