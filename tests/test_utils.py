@@ -78,6 +78,10 @@ def test_underscore():
     )
     assert underscore("a|b") == "a_b"
     assert underscore("$/£ exchange rate") == "dollar_ps_exchange_rate"
+    assert (
+        underscore("‘cost of basic needs’ approach - share of population below poverty line")
+        == "cost_of_basic_needs_approach__share_of_population_below_poverty_line"
+    )
 
 
 def test_underscore_table():
