@@ -62,7 +62,7 @@ class CatalogMixin:
         criteria: npt.ArrayLike = np.ones(len(self.frame), dtype=bool)
 
         if table:
-            criteria &= self.frame.table.apply(lambda t: table in t)
+            criteria &= self.frame.table.str.contains(table)
 
         if namespace:
             criteria &= self.frame.namespace == namespace
@@ -298,8 +298,10 @@ class CatalogFrame(pd.DataFrame):
     def load(self) -> Table:
         if len(self) == 1:
             return self.iloc[0].load()  # type: ignore
-
-        raise ValueError("only one table can be loaded at once")
+        elif len(self) == 0:
+            raise ValueError("no tables found")
+        else:
+            raise ValueError(f"only one table can be loaded at once (tables found: {', '.join(self.table.tolist())})")
 
     @staticmethod
     def create_empty() -> "CatalogFrame":

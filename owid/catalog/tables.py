@@ -374,7 +374,10 @@ class Table(pd.DataFrame):
         return combined
 
     def update_metadata_from_yaml(self, path: Union[Path, str], table_name: str) -> None:
-        """Update metadata of table and variables from a YAML file."""
+        """Update metadata of table and variables from a YAML file.
+        :param path: Path to YAML file.
+        :param table_name: Name of table, also updates this in the metadata.
+        """
         with open(path) as istream:
             annot = yaml.safe_load(istream)
 
