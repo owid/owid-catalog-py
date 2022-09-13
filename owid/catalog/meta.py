@@ -7,7 +7,7 @@
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, TypeVar, Union
+from typing import Any, Dict, List, Literal, Optional, TypeVar, Union
 
 import yaml
 from dataclasses_json import dataclass_json
@@ -157,12 +157,17 @@ class DatasetMeta:
     def from_dict(d: Dict[str, Any]) -> "DatasetMeta":
         ...
 
-    def update_from_yaml(self, path: Union[Path, str]) -> None:
+    def update_from_yaml(
+        self, path: Union[Path, str], if_source_exists: Literal["fail", "append", "replace"] = "fail"
+    ) -> None:
         """The main reason for wanting to do this is to manually override what goes into Grapher before an export."""
         with open(path) as istream:
             annot = yaml.safe_load(istream)
 
         # update sources of dataset
+        if if_source_exists == "replace":
+            self.sources = []
+
         for source_annot in annot["dataset"].get("sources", []) or []:
             # if there's an existing source, update it
             ds_sources = [s for s in self.sources if s.name == source_annot["name"]]
@@ -170,7 +175,10 @@ class DatasetMeta:
                 # TODO: add `update` method to Source object instead of `setattr``
                 for k, v in source_annot.items():
                     setattr(ds_sources[0], k, v)
-            # otherwise create new source
+            # there is already a source in a dataset, raise an error
+            elif self.sources and if_source_exists == "fail":
+                raise ValueError(f"Source {self.sources[0].name} would be overwritten by source {source_annot['name']}")
+            # otherwise append it
             else:
                 self.sources.append(Source(**source_annot))
 
