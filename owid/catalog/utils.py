@@ -139,11 +139,18 @@ def underscore_table(
     new_cols = pd.Index([underscore(c) for c in t.columns])
     new_cols = _resolve_collisions(orig_cols, new_cols, collision)
 
-    t = t.rename(columns={c_old: c_new for c_old, c_new in zip(orig_cols, new_cols)})
+    columns_map = {c_old: c_new for c_old, c_new in zip(orig_cols, new_cols)}
+    t = t.rename(columns=columns_map)
 
     t.index.names = [underscore(e) for e in t.index.names]
     t.metadata.primary_key = t.primary_key
     t.metadata.short_name = underscore(t.metadata.short_name)
+
+    # put original names as titles into metadata by default
+    for c_old, c_new in columns_map.items():
+        if t[c_new].metadata.title is None:
+            t[c_new].metadata.title = c_old
+
     return t
 
 

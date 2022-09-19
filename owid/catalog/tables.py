@@ -18,7 +18,7 @@ from pandas.util._decorators import rewrite_axis_style_signature
 
 from . import variables
 from .frames import repack_frame
-from .meta import TableMeta, VariableMeta
+from .meta import Source, TableMeta, VariableMeta
 
 SCHEMA = json.load(open(join(dirname(__file__), "schemas", "table.json")))
 METADATA_FIELDS = list(SCHEMA["properties"])
@@ -388,7 +388,11 @@ class Table(pd.DataFrame):
         # update variables
         for v_short_name, v_annot in (t_annot["variables"] or {}).items():
             for k, v in v_annot.items():
-                setattr(self[v_short_name].metadata, k, v)
+                # create an object out of sources
+                if k == "sources":
+                    self[v_short_name].metadata.sources = [Source(**source) for source in v]
+                else:
+                    setattr(self[v_short_name].metadata, k, v)
 
         # update table attributes
         for k, v in t_annot.items():

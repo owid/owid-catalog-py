@@ -95,6 +95,7 @@ def test_underscore_table():
     assert tt.columns == ["a"]
     assert tt.index.names == ["i"]
     assert tt["a"].metadata.description == "column A"
+    assert tt["a"].metadata.title == "A"
 
 
 def test_underscore_table_collision():
