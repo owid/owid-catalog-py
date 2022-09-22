@@ -37,7 +37,7 @@ S3_OWID_URI = "s3://owid-catalog"
 REMOTE_CATALOG: Optional["RemoteCatalog"] = None
 
 # available channels in the catalog
-CHANNEL = Literal["garden", "meadow", "backport", "open_numbers", "examples", "explorers"]
+CHANNEL = Literal["garden", "meadow", "grapher", "backport", "open_numbers", "examples", "explorers"]
 
 # what formats should we for our index of available datasets?
 INDEX_FORMATS: List[FileFormat] = ["feather", "parquet"]

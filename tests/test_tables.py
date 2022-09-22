@@ -251,3 +251,22 @@ def test_rename_columns_inplace() -> None:
     t.rename(columns={"gdp": "new_gdp"}, inplace=True)
     assert t.new_gdp.metadata.title == "GDP"
     assert t.columns == ["new_gdp"]
+
+
+def test_copy() -> None:
+    t: Table = Table({"gdp": [100, 102, 104], "country": ["AU", "SE", "CH"]}).set_index("country")  # type: ignore
+    t.metadata.title = "GDP table"
+    t.gdp.metadata.title = "GDP"
+    t2 = t.copy()
+
+    t2.metadata.title = "GDP table copy"
+    t2.gdp.metadata.title = "GDP copy"
+    t2.reset_index(inplace=True)
+
+    assert t.gdp.metadata.title == "GDP"
+    assert t.metadata.title == "GDP table"
+    assert t.primary_key == ["country"]
+
+    assert t2.gdp.metadata.title == "GDP copy"
+    assert t2.metadata.title == "GDP table copy"
+    assert t2.primary_key == []
