@@ -404,3 +404,10 @@ class Table(pd.DataFrame):
         the table by columns."""
         self._fields = {col: self._fields[col] for col in self.all_columns}
         return self
+
+    def copy(self, deep: bool = True) -> "Table":
+        """Copy table together with all its metadata."""
+        tab = super().copy(deep=deep)
+        tab.metadata = copy.deepcopy(self.metadata)
+        tab._fields = copy.deepcopy(self._fields)
+        return tab
