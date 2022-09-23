@@ -36,7 +36,13 @@ def test_remote_find_returns_all():
 
 def test_remote_find_one():
     c = load_catalog()
-    t = c.find_one("population", dataset="key_indicators", namespace="owid")
+    t = c.find_one("population_density", dataset="key_indicators", namespace="owid")
+    assert isinstance(t, Table)
+
+
+def test_remote_getitem():
+    c = load_catalog()
+    t = c["garden/owid/latest/key_indicators/population_density"]
     assert isinstance(t, Table)
 
 
@@ -49,6 +55,13 @@ def test_find_from_local_catalog():
     with mock_catalog(3) as catalog:
         matches = catalog.find()
         assert len(matches.dataset.unique()) == 3
+
+
+def test_getitem_from_local_catalog():
+    with mock_catalog(1) as catalog:
+        path = catalog.find().iloc[0].path
+        t = catalog[path]
+        assert isinstance(t, Table)
 
 
 def test_load_from_local_catalog():
