@@ -218,6 +218,7 @@ t = Table.read_csv('/tmp/my_table.csv')
   - Sort imports with `isort`
   - Change black line length to 120
   - Add `grapher` channel
+  - Support path-based indexing into catalogs
 - `v0.3.0`
   - Update `OWID_CATALOG_VERSION` to 3
   - Support multiple formats per table

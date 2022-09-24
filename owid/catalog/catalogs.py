@@ -19,7 +19,7 @@ import requests
 import structlog
 
 from . import s3_utils
-from .datasets import PREFERRED_FORMAT, Dataset, FileFormat
+from .datasets import PREFERRED_FORMAT, SUPPORTED_FORMATS, Dataset, FileFormat
 from .tables import Table
 
 log = structlog.get_logger()
@@ -50,6 +50,7 @@ class CatalogMixin:
 
     channels: Iterable[CHANNEL]
     frame: "CatalogFrame"
+    uri: str
 
     def find(
         self,
@@ -100,6 +101,16 @@ class CatalogMixin:
         else:
             return cast(Table, frame.sort_values("version").iloc[-1].load())
 
+    def __getitem__(self, path: str) -> Table:
+        uri = "/".join([self.uri, path])
+        for _format in SUPPORTED_FORMATS:
+            try:
+                return Table.read(f"{uri}.{_format}")
+            except Exception:
+                continue
+
+        raise KeyError(f"no matching table found at: {uri}")
+
 
 class LocalCatalog(CatalogMixin):
     """
@@ -108,10 +119,10 @@ class LocalCatalog(CatalogMixin):
     which can create such an index.
     """
 
-    path: Path
+    uri: str
 
     def __init__(self, path: Union[str, Path], channels: Iterable[CHANNEL] = ("garden",)) -> None:
-        self.path = Path(path)
+        self.uri = str(path)
         self.channels = channels
         if self._catalog_exists(channels):
             self.frame = CatalogFrame(self._read_channels(channels))
@@ -121,6 +132,10 @@ class LocalCatalog(CatalogMixin):
             self.reindex()
 
         # ensure the frame knows where to load data from
+
+    @property
+    def path(self) -> Path:
+        return Path(self.uri)
 
     def _catalog_exists(self, channels: Iterable[CHANNEL]) -> bool:
         return all([self._catalog_channel_file(channel).exists() for channel in channels])
