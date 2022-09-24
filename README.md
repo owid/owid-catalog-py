@@ -215,6 +215,7 @@ t = Table.read_csv('/tmp/my_table.csv')
 ## Changelog
 
 - `master`
+- `v0.3.1`
   - Sort imports with `isort`
   - Change black line length to 120
   - Add `grapher` channel
