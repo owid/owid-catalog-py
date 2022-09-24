@@ -215,6 +215,8 @@ t = Table.read_csv('/tmp/my_table.csv')
 ## Changelog
 
 - `master`
+- `v0.3.2`
+  - Fix a bug in `Catalog.__getitem__()`
 - `v0.3.1`
   - Sort imports with `isort`
   - Change black line length to 120

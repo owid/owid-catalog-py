@@ -102,7 +102,7 @@ class CatalogMixin:
             return cast(Table, frame.sort_values("version").iloc[-1].load())
 
     def __getitem__(self, path: str) -> Table:
-        uri = "/".join([self.uri, path])
+        uri = "/".join([self.uri.rstrip("/"), path])
         for _format in SUPPORTED_FORMATS:
             try:
                 return Table.read(f"{uri}.{_format}")
