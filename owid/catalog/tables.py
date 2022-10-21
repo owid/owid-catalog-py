@@ -3,6 +3,7 @@
 #
 
 import copy
+import dataclasses
 import json
 from collections import defaultdict
 from os.path import dirname, join, splitext
@@ -408,8 +409,13 @@ class Table(pd.DataFrame):
     def copy(self, deep: bool = True) -> "Table":
         """Copy table together with all its metadata."""
         tab = super().copy(deep=deep)
-        tab.metadata = copy.deepcopy(self.metadata)
-        tab._fields = copy.deepcopy(self._fields)
+
+        tab.metadata = dataclasses.replace(self.metadata)
+
+        for k, v in self._fields.items():
+            tab._fields[k] = dataclasses.replace(v)
+            tab._fields[k].sources = [dataclasses.replace(s) for s in v.sources]
+
         return tab
 
     def reset_index(self, *args, **kwargs) -> "Table":  # type: ignore
