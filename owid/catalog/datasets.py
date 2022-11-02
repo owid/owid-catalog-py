@@ -126,7 +126,7 @@ class Dataset:
         self._update_table_metadata()
 
     def _update_table_metadata(self) -> None:
-        "Update the copy of this dataset's metadata in every table in the set."
+        """Update the copy of this datasets metadata in every table in the set."""
         dataset_meta = self.metadata.to_dict()
 
         for metadata_file in glob(join(self.path, "*.meta.json")):

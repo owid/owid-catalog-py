@@ -27,11 +27,11 @@ structlog = "^21.5.0"
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.5"
 black = "^22.3"
-mypy = "^0.942"
 flake8 = "^3.9.2"
 watchdog = "^2.1.5"
 argh = "^0.26.2"
 isort = "^5.10.1"
+pyright = "^1.1.278"
 
 [tool.isort]
 profile = "black"

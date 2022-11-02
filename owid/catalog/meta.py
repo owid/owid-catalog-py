@@ -54,6 +54,11 @@ class Source:
     def to_dict(self) -> Dict[str, Any]:
         ...
 
+    def update(self, **kwargs: Dict[str, Any]) -> None:
+        for key, value in kwargs.items():
+            if value is not None:
+                setattr(self, key, value)
+
 
 @pruned_json
 @dataclass_json
@@ -168,19 +173,20 @@ class DatasetMeta:
         if if_source_exists == "replace":
             self.sources = []
 
+        new_sources = []
         for source_annot in annot["dataset"].get("sources", []) or []:
             # if there's an existing source, update it
             ds_sources = [s for s in self.sources if s.name == source_annot["name"]]
             if ds_sources:
-                # TODO: add `update` method to Source object instead of `setattr``
-                for k, v in source_annot.items():
-                    setattr(ds_sources[0], k, v)
+                ds_sources[0].update(**source_annot)
             # there is already a source in a dataset, raise an error
             elif self.sources and if_source_exists == "fail":
                 raise ValueError(f"Source {self.sources[0].name} would be overwritten by source {source_annot['name']}")
             # otherwise append it
             else:
-                self.sources.append(Source(**source_annot))
+                new_sources.append(Source(**source_annot))
+
+        self.sources.extend(new_sources)
 
         # update dataset
         for k, v in annot["dataset"].items():
@@ -207,6 +213,9 @@ class TableMeta:
             raise Exception("table has no short_name")
 
         return self.short_name
+
+    def to_dict(self) -> Dict[str, Any]:
+        ...
 
     @staticmethod
     def from_dict(dict: Dict[str, Any]) -> "TableMeta":
