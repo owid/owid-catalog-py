@@ -411,3 +411,7 @@ class Table(pd.DataFrame):
         tab.metadata = copy.deepcopy(self.metadata)
         tab._fields = copy.deepcopy(self._fields)
         return tab
+
+    def reset_index(self, *args, **kwargs) -> "Table":  # type: ignore
+        """Fix type signature of reset_index."""
+        return super().reset_index(*args, **kwargs)  # type: ignore

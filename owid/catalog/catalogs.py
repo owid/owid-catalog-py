@@ -210,7 +210,7 @@ class LocalCatalog(CatalogMixin):
         supported formats.
         """
         for channel in self.channels:
-            channel_frame = frame[frame.channel == channel].reset_index(drop=True)
+            channel_frame = frame.loc[frame.channel == channel].reset_index(drop=True)
             for format in INDEX_FORMATS:
                 filename = self._catalog_channel_file(channel, format)
                 save_frame(channel_frame, filename)
@@ -239,7 +239,7 @@ class LocalCatalog(CatalogMixin):
         keys = ["table", "dataset", "version", "namespace", "channel", "is_public"]
         columns = keys + [c for c in df.columns if c not in keys]
 
-        df.sort_values(keys, inplace=True)
+        df.sort_values(keys, inplace=True)  # type: ignore
         df = df.loc[:, columns]
 
         return CatalogFrame(df)
