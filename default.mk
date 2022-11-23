@@ -12,7 +12,7 @@ default:
 	@echo
 
 .venv: pyproject.toml poetry.toml poetry.lock
-	poetry install
+	poetry install || poetry install
 	touch $@
 
 # check formatting before lint, since an autoformat might fix linting issues
