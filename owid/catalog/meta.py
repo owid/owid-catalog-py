@@ -64,10 +64,14 @@ class Source:
 @dataclass_json
 @dataclass
 class License:
-    name: Optional[str]
-    url: Optional[str]
+    name: Optional[str] = None
+    url: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
+        ...
+
+    @staticmethod
+    def from_dict(d: Dict[str, Any]) -> "License":
         ...
 
 
@@ -93,7 +97,7 @@ class VariableMeta:
     title: Optional[str] = None
     description: Optional[str] = None
     sources: List[Source] = field(default_factory=list)
-    licenses: List[Source] = field(default_factory=list)
+    licenses: List[License] = field(default_factory=list)
     unit: Optional[str] = None
     short_unit: Optional[str] = None
     display: Optional[Dict[str, Any]] = None
