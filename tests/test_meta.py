@@ -69,3 +69,11 @@ def test_update_from_yaml(tmp_path):
     d1 = meta.DatasetMeta(sources=[s1])
     d1.update_from_yaml(metapath, if_source_exists="append")
     assert len(d1.sources) == 2
+
+
+def test_load_license_from_dict():
+    d = {
+        "url": "https://www.unicef.org/legal#terms-of-use",
+    }
+    license = meta.License.from_dict(d)
+    assert license.url == d["url"]
