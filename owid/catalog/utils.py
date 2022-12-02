@@ -154,7 +154,7 @@ def underscore_table(
     return t
 
 
-def validate_underscore(name: Optional[str], object_name: str) -> None:
+def validate_underscore(name: Optional[str], object_name: str = "Name") -> None:
     """Raise error if name is not snake_case."""
     if name is not None and not re.match("^[a-z_][a-z0-9_]*$", name):
         raise NameError(f"{object_name} must be snake_case. Change `{name}` to `{underscore(name, validate=False)}`")

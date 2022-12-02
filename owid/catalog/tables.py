@@ -45,15 +45,42 @@ class Table(pd.DataFrame):
     def _constructor_sliced(self) -> Any:
         return variables.Variable
 
-    def __init__(self, *args: Any, metadata: Optional[TableMeta] = None, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        *args: Any,
+        metadata: Optional[TableMeta] = None,
+        short_name: Optional[str] = None,
+        underscore=False,
+        like: Optional["Table"] = None,
+        **kwargs: Any,
+    ) -> None:
         super().__init__(*args, **kwargs)
 
         # empty table metadata by default
         self.metadata = metadata or TableMeta()
 
+        # use supplied short_name
+        if short_name:
+            assert self.metadata.short_name is None or (
+                self.metadata.short_name == short_name
+            ), "short_name is different from the one in metadata"
+            self.metadata.short_name = short_name
+
         # all columns have empty metadata by default
         assert not hasattr(self, "_fields")
         self._fields = defaultdict(VariableMeta)
+
+        # underscore column names
+        if underscore:
+            from .utils import underscore_table
+
+            self = underscore_table(self)
+
+        # reuse metadata from a different table
+        if like is not None:
+            self.metadata = copy.deepcopy(like.metadata)
+            for col in self.columns:
+                self[col].metadata = copy.deepcopy(like[col].metadata)
 
     @property
     def primary_key(self) -> List[str]:
@@ -143,8 +170,10 @@ class Table(pd.DataFrame):
 
         df.to_feather(path, compression=compression, **kwargs)
 
-        metadata_filename = splitext(path)[0] + ".meta.json"
-        self._save_metadata(metadata_filename)
+        self._save_metadata(self.metadata_filename(path))
+
+    def metadata_filename(self, path: str):
+        return splitext(path)[0] + ".meta.json"
 
     def to_parquet(self, path: Any, repack: bool = True) -> None:  # type: ignore
         """

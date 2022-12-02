@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any, Iterator, List, Literal, Optional, Union
 
 import pandas as pd
+import yaml
 
 from . import tables, utils
 from .meta import DatasetMeta, TableMeta
@@ -123,20 +124,22 @@ class Dataset:
             warnings.warn(f"Dataset {self.metadata.short_name} is missing namespace")
 
         self.metadata.save(self._index_file)
-        self._update_table_metadata()
 
-    def _update_table_metadata(self) -> None:
-        """Update the copy of this datasets metadata in every table in the set."""
-        dataset_meta = self.metadata.to_dict()
+        # Update the copy of this datasets metadata in every table in the set.
+        for table_name in self.table_names:
+            table = self[table_name]
+            table.metadata.dataset = self.metadata
+            table._save_metadata(join(self.path, table.metadata.checked_name + f".meta.json"))
 
-        for metadata_file in glob(join(self.path, "*.meta.json")):
-            with open(metadata_file) as istream:
-                table_meta = json.load(istream)
+    def update_metadata(self, metadata_path: Path) -> None:
+        self.metadata.update_from_yaml(metadata_path, if_source_exists="replace")
 
-            table_meta["dataset"] = dataset_meta
-
-            with open(metadata_file, "w") as ostream:
-                json.dump(table_meta, ostream, indent=2, default=str)
+        with open(metadata_path) as istream:
+            metadata = yaml.safe_load(istream)
+            for table_name in metadata["tables"].keys():
+                table = self[table_name]
+                table.update_metadata_from_yaml(metadata_path, table_name)
+                table._save_metadata(join(self.path, table.metadata.checked_name + f".meta.json"))
 
     def index(self, catalog_path: Path = Path("/")) -> pd.DataFrame:
         """
