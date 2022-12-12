@@ -129,6 +129,7 @@ def _resolve_collisions(
 def underscore_table(
     t: Table,
     collision: Literal["raise", "rename", "ignore"] = "raise",
+    inplace: bool = False,
 ) -> Table:
     """Convert column and index names to underscore. In extremely rare cases
     two columns might have the same underscored version. Use `collision` param
@@ -140,7 +141,10 @@ def underscore_table(
     new_cols = _resolve_collisions(orig_cols, new_cols, collision)
 
     columns_map = {c_old: c_new for c_old, c_new in zip(orig_cols, new_cols)}
-    t = t.rename(columns=columns_map)
+    if inplace:
+        t.rename(columns=columns_map, inplace=True)
+    else:
+        t = t.rename(columns=columns_map)
 
     t.index.names = [underscore(e) for e in t.index.names]
     t.metadata.primary_key = t.primary_key

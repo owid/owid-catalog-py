@@ -25,6 +25,12 @@ def test_create():
     assert list(t.country) == ["AU", "SE", "CH"]
 
 
+def test_create_with_underscore():
+    t = Table({"GDP": [100, 102, 104]}, underscore=True, short_name="GDP Table")
+    assert t.columns == ["gdp"]
+    assert t.metadata.short_name == "gdp_table"
+
+
 def test_add_table_metadata():
     t = Table({"gdp": [100, 102, 104], "country": ["AU", "SE", "CH"]})
 
@@ -270,3 +276,16 @@ def test_copy() -> None:
     assert t2.gdp.metadata.title == "GDP copy"
     assert t2.metadata.title == "GDP table copy"
     assert t2.primary_key == []
+
+
+def test_copy_metadata_from() -> None:
+    t: Table = Table({"gdp": [100, 102, 104], "country": ["AU", "SE", "CH"]}).set_index("country")  # type: ignore
+    t.metadata.title = "GDP table"
+    t.gdp.metadata.title = "GDP"
+
+    t2: Table = Table(pd.DataFrame(t))
+    t2.copy_metadata_from(t)
+
+    assert t2.gdp.metadata.title == "GDP"
+    assert t2.metadata.title == "GDP table"
+    assert t2.primary_key == ["country"]

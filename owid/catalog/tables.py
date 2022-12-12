@@ -86,7 +86,7 @@ class Table(pd.DataFrame):
         if underscore:
             from .utils import underscore_table
 
-            self = underscore_table(self)
+            underscore_table(self, inplace=True)
 
         # reuse metadata from a different table
         if like is not None:
@@ -456,7 +456,7 @@ class Table(pd.DataFrame):
 
         # NOTE: copying with `dataclasses.replace` is much faster than `copy.deepcopy`
         new_fields = defaultdict(VariableMeta)
-        for k, v in self._fields.items():
+        for k, v in table._fields.items():
             new_fields[k] = dataclasses.replace(v)
             new_fields[k].sources = [dataclasses.replace(s) for s in v.sources]
         self._fields = new_fields
