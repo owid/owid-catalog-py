@@ -412,9 +412,11 @@ class Table(pd.DataFrame):
 
         tab.metadata = dataclasses.replace(self.metadata)
 
+        new_fields = defaultdict(VariableMeta)
         for k, v in self._fields.items():
-            tab._fields[k] = dataclasses.replace(v)
-            tab._fields[k].sources = [dataclasses.replace(s) for s in v.sources]
+            new_fields[k] = dataclasses.replace(v)
+            new_fields[k].sources = [dataclasses.replace(s) for s in v.sources]
+        tab._fields = new_fields
 
         return tab
 
