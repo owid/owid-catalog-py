@@ -215,6 +215,8 @@ t = Table.read_csv('/tmp/my_table.csv')
 ## Changelog
 
 - `master`
+  - Add more arguments to `Table.__init__` that are often used in ETL
+  - Add `Dataset.update_metadata` function for updating metadata from YAML file
 - `v0.3.2`
   - Fix a bug in `Catalog.__getitem__()`
   - Replace `mypy` type checker by `pyright`
