@@ -3,6 +3,7 @@
 #
 
 import copy
+import dataclasses
 import json
 from collections import defaultdict
 from os.path import dirname, join, splitext
@@ -54,6 +55,17 @@ class Table(pd.DataFrame):
         like: Optional["Table"] = None,
         **kwargs: Any,
     ) -> None:
+        """
+        :param metadata: TableMeta to use
+        :param short_name: Use empty TableMeta and fill it with `short_name`. This is a shorter version
+            of `Table(df, metadata=TableMeta(short_name="my_name"))`
+        :param underscore: Underscore table columns and indexes. See `underscore_table` for help
+        :param like: Use metadata from Table given in this argument (including columns). This is a shorter version of
+            new_t = Table(df, metadata=old_t.metadata)
+            for col in new_t.columns:
+                new_t[col].metadata = deepcopy(old_t[col].metadata)
+        """
+
         super().__init__(*args, **kwargs)
 
         # empty table metadata by default
@@ -78,9 +90,7 @@ class Table(pd.DataFrame):
 
         # reuse metadata from a different table
         if like is not None:
-            self.metadata = copy.deepcopy(like.metadata)
-            for col in self.columns:
-                self[col].metadata = copy.deepcopy(like[col].metadata)
+            self.copy_metadata_from(like)
 
     @property
     def primary_key(self) -> List[str]:
@@ -437,9 +447,19 @@ class Table(pd.DataFrame):
     def copy(self, deep: bool = True) -> "Table":
         """Copy table together with all its metadata."""
         tab = super().copy(deep=deep)
-        tab.metadata = copy.deepcopy(self.metadata)
-        tab._fields = copy.deepcopy(self._fields)
+        tab.copy_metadata_from(self)
         return tab
+
+    def copy_metadata_from(self, table: "Table") -> None:
+        """Copy metadata from a different table to self."""
+        self.metadata = dataclasses.replace(table.metadata)
+
+        # NOTE: copying with `dataclasses.replace` is much faster than `copy.deepcopy`
+        new_fields = defaultdict(VariableMeta)
+        for k, v in self._fields.items():
+            new_fields[k] = dataclasses.replace(v)
+            new_fields[k].sources = [dataclasses.replace(s) for s in v.sources]
+        self._fields = new_fields
 
     def reset_index(self, *args, **kwargs) -> "Table":  # type: ignore
         """Fix type signature of reset_index."""

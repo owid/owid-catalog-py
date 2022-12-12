@@ -129,9 +129,15 @@ class Dataset:
         for table_name in self.table_names:
             table = self[table_name]
             table.metadata.dataset = self.metadata
-            table._save_metadata(join(self.path, table.metadata.checked_name + f".meta.json"))
+            table._save_metadata(join(self.path, table.metadata.checked_name + ".meta.json"))
 
     def update_metadata(self, metadata_path: Path) -> None:
+        """
+        Load YAML file with metadata from given path and update metadata of dataset and its tables.
+
+        :param metadata_path: Path to *.meta.yml file with metadata. Check out other metadata files
+            for examples, this function doesn't do schema validation
+        """
         self.metadata.update_from_yaml(metadata_path, if_source_exists="replace")
 
         with open(metadata_path) as istream:
@@ -139,7 +145,7 @@ class Dataset:
             for table_name in metadata["tables"].keys():
                 table = self[table_name]
                 table.update_metadata_from_yaml(metadata_path, table_name)
-                table._save_metadata(join(self.path, table.metadata.checked_name + f".meta.json"))
+                table._save_metadata(join(self.path, table.metadata.checked_name + ".meta.json"))
 
     def index(self, catalog_path: Path = Path("/")) -> pd.DataFrame:
         """
