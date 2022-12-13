@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Iterator, Union
 
 import pytest
+import yaml
 
 from owid.catalog import Dataset, DatasetMeta
 
@@ -233,6 +234,24 @@ def test_snake_case_table():
         t.index.names = ["Country"]
         with pytest.raises(NameError):
             d.add(t)
+
+
+def test_update_metadata(tmp_path):
+    with mock_dataset() as d:
+        table_name = d.table_names[0]
+
+        # create test yml file
+        temp_file = tmp_path / "my.meta.yml"
+        meta = {
+            "dataset": {"title": "Dataset title from YAML"},
+            "tables": {table_name: {"variables": {"gdp": {"title": "Variable title from YAML"}}}},
+        }
+        temp_file.write_text(yaml.dump(meta))
+
+        d.update_metadata(temp_file)
+
+        assert d.metadata.title == "Dataset title from YAML"
+        assert d[table_name]["gdp"].metadata.title == "Variable title from YAML"
 
 
 @contextmanager

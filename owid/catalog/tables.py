@@ -3,6 +3,7 @@
 #
 
 import copy
+import dataclasses
 import json
 from collections import defaultdict
 from os.path import dirname, join, splitext
@@ -13,12 +14,15 @@ import pandas as pd
 import pyarrow
 import pyarrow.parquet as pq
 import requests
+import structlog
 import yaml
 from pandas.util._decorators import rewrite_axis_style_signature
 
 from . import variables
 from .frames import repack_frame
 from .meta import Source, TableMeta, VariableMeta
+
+log = structlog.get_logger()
 
 SCHEMA = json.load(open(join(dirname(__file__), "schemas", "table.json")))
 METADATA_FIELDS = list(SCHEMA["properties"])
@@ -45,15 +49,51 @@ class Table(pd.DataFrame):
     def _constructor_sliced(self) -> Any:
         return variables.Variable
 
-    def __init__(self, *args: Any, metadata: Optional[TableMeta] = None, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        *args: Any,
+        metadata: Optional[TableMeta] = None,
+        short_name: Optional[str] = None,
+        underscore=False,
+        like: Optional["Table"] = None,
+        **kwargs: Any,
+    ) -> None:
+        """
+        :param metadata: TableMeta to use
+        :param short_name: Use empty TableMeta and fill it with `short_name`. This is a shorter version
+            of `Table(df, metadata=TableMeta(short_name="my_name"))`
+        :param underscore: Underscore table columns and indexes. See `underscore_table` for help
+        :param like: Use metadata from Table given in this argument (including columns). This is a shorter version of
+            new_t = Table(df, metadata=old_t.metadata)
+            for col in new_t.columns:
+                new_t[col].metadata = deepcopy(old_t[col].metadata)
+        """
+
         super().__init__(*args, **kwargs)
 
         # empty table metadata by default
         self.metadata = metadata or TableMeta()
 
+        # use supplied short_name
+        if short_name:
+            assert self.metadata.short_name is None or (
+                self.metadata.short_name == short_name
+            ), "short_name is different from the one in metadata"
+            self.metadata.short_name = short_name
+
         # all columns have empty metadata by default
         assert not hasattr(self, "_fields")
         self._fields = defaultdict(VariableMeta)
+
+        # underscore column names
+        if underscore:
+            from .utils import underscore_table
+
+            underscore_table(self, inplace=True)
+
+        # reuse metadata from a different table
+        if like is not None:
+            self.copy_metadata_from(like)
 
     @property
     def primary_key(self) -> List[str]:
@@ -143,8 +183,10 @@ class Table(pd.DataFrame):
 
         df.to_feather(path, compression=compression, **kwargs)
 
-        metadata_filename = splitext(path)[0] + ".meta.json"
-        self._save_metadata(metadata_filename)
+        self._save_metadata(self.metadata_filename(path))
+
+    def metadata_filename(self, path: str):
+        return splitext(path)[0] + ".meta.json"
 
     def to_parquet(self, path: Any, repack: bool = True) -> None:  # type: ignore
         """
@@ -408,9 +450,35 @@ class Table(pd.DataFrame):
     def copy(self, deep: bool = True) -> "Table":
         """Copy table together with all its metadata."""
         tab = super().copy(deep=deep)
-        tab.metadata = copy.deepcopy(self.metadata)
-        tab._fields = copy.deepcopy(self._fields)
+        tab.copy_metadata_from(self)
         return tab
+
+    def copy_metadata_from(self, table: "Table", errors: Literal["raise", "ignore", "warn"] = "raise") -> None:
+        """Copy metadata from a different table to self."""
+        self.metadata = dataclasses.replace(table.metadata)
+
+        extra_columns = set(table.columns) - set(self.columns)
+        missing_columns = set(self.columns) - set(table.columns)
+        common_columns = set(self.columns) & set(table.columns)
+
+        if errors == "raise":
+            if extra_columns:
+                raise ValueError(f"Extra columns in table: {extra_columns}")
+            if missing_columns:
+                raise ValueError(f"Missing columns in table: {missing_columns}")
+        elif errors == "warn":
+            if extra_columns:
+                log.warning(f"Extra columns in table: {extra_columns}")
+            if missing_columns:
+                log.warning(f"Missing columns in table: {missing_columns}")
+
+        # NOTE: copying with `dataclasses.replace` is much faster than `copy.deepcopy`
+        new_fields = defaultdict(VariableMeta)
+        for k in common_columns:
+            v = table._fields[k]
+            new_fields[k] = dataclasses.replace(v)
+            new_fields[k].sources = [dataclasses.replace(s) for s in v.sources]
+        self._fields = new_fields
 
     def reset_index(self, *args, **kwargs) -> "Table":  # type: ignore
         """Fix type signature of reset_index."""
