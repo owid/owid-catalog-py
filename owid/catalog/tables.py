@@ -475,9 +475,14 @@ class Table(pd.DataFrame):
         # NOTE: copying with `dataclasses.replace` is much faster than `copy.deepcopy`
         new_fields = defaultdict(VariableMeta)
         for k in common_columns:
-            v = table._fields[k]
-            new_fields[k] = dataclasses.replace(v)
-            new_fields[k].sources = [dataclasses.replace(s) for s in v.sources]
+            # copy if we have metadata in the other table
+            if k in table._fields:
+                v = table._fields[k]
+                new_fields[k] = dataclasses.replace(v)
+                new_fields[k].sources = [dataclasses.replace(s) for s in v.sources]
+            # otherwise keep current metadata (if it exists)
+            elif k in self._fields:
+                new_fields[k] = self._fields[k]
         self._fields = new_fields
 
     def reset_index(self, *args, **kwargs) -> "Table":  # type: ignore
