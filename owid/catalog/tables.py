@@ -14,12 +14,15 @@ import pandas as pd
 import pyarrow
 import pyarrow.parquet as pq
 import requests
+import structlog
 import yaml
 from pandas.util._decorators import rewrite_axis_style_signature
 
 from . import variables
 from .frames import repack_frame
 from .meta import Source, TableMeta, VariableMeta
+
+log = structlog.get_logger()
 
 SCHEMA = json.load(open(join(dirname(__file__), "schemas", "table.json")))
 METADATA_FIELDS = list(SCHEMA["properties"])
@@ -450,13 +453,29 @@ class Table(pd.DataFrame):
         tab.copy_metadata_from(self)
         return tab
 
-    def copy_metadata_from(self, table: "Table") -> None:
+    def copy_metadata_from(self, table: "Table", errors: Literal["raise", "ignore", "warn"] = "raise") -> None:
         """Copy metadata from a different table to self."""
         self.metadata = dataclasses.replace(table.metadata)
 
+        extra_columns = set(table.columns) - set(self.columns)
+        missing_columns = set(self.columns) - set(table.columns)
+        common_columns = set(self.columns) & set(table.columns)
+
+        if errors == "raise":
+            if extra_columns:
+                raise ValueError(f"Extra columns in table: {extra_columns}")
+            if missing_columns:
+                raise ValueError(f"Missing columns in table: {missing_columns}")
+        elif errors == "warn":
+            if extra_columns:
+                log.warning(f"Extra columns in table: {extra_columns}")
+            if missing_columns:
+                log.warning(f"Missing columns in table: {missing_columns}")
+
         # NOTE: copying with `dataclasses.replace` is much faster than `copy.deepcopy`
         new_fields = defaultdict(VariableMeta)
-        for k, v in table._fields.items():
+        for k in common_columns:
+            v = table._fields[k]
             new_fields[k] = dataclasses.replace(v)
             new_fields[k].sources = [dataclasses.replace(s) for s in v.sources]
         self._fields = new_fields

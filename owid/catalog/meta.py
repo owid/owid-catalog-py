@@ -26,6 +26,9 @@ def pruned_json(cls: T) -> T:
     return cls
 
 
+SOURCE_EXISTS_OPTIONS = Literal["fail", "append", "replace"]
+
+
 @pruned_json
 @dataclass_json
 @dataclass
@@ -166,9 +169,7 @@ class DatasetMeta:
     def from_dict(d: Dict[str, Any]) -> "DatasetMeta":
         ...
 
-    def update_from_yaml(
-        self, path: Union[Path, str], if_source_exists: Literal["fail", "append", "replace"] = "fail"
-    ) -> None:
+    def update_from_yaml(self, path: Union[Path, str], if_source_exists: SOURCE_EXISTS_OPTIONS = "fail") -> None:
         """The main reason for wanting to do this is to manually override what goes into Grapher before an export."""
         with open(path) as istream:
             annot = yaml.safe_load(istream)

@@ -17,7 +17,7 @@ import pandas as pd
 import yaml
 
 from . import tables, utils
-from .meta import DatasetMeta, TableMeta
+from .meta import SOURCE_EXISTS_OPTIONS, DatasetMeta, TableMeta
 from .properties import metadata_property
 
 FileFormat = Literal["csv", "feather", "parquet"]
@@ -131,14 +131,18 @@ class Dataset:
             table.metadata.dataset = self.metadata
             table._save_metadata(join(self.path, table.metadata.checked_name + ".meta.json"))
 
-    def update_metadata(self, metadata_path: Path) -> None:
+    def update_metadata(self, metadata_path: Path, if_source_exists: SOURCE_EXISTS_OPTIONS = "replace") -> None:
         """
         Load YAML file with metadata from given path and update metadata of dataset and its tables.
 
         :param metadata_path: Path to *.meta.yml file with metadata. Check out other metadata files
             for examples, this function doesn't do schema validation
+        :param if_source_exists: What to do if source already exists in metadata. Possible values:
+            - "replace" (default): replace existing source with new one
+            - "append": append new source to existing ones
+            - "fail": raise an exception if source already exists
         """
-        self.metadata.update_from_yaml(metadata_path, if_source_exists="replace")
+        self.metadata.update_from_yaml(metadata_path, if_source_exists=if_source_exists)
 
         with open(metadata_path) as istream:
             metadata = yaml.safe_load(istream)
