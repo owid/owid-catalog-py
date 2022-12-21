@@ -386,6 +386,7 @@ def find(
 
     return REMOTE_CATALOG.find(table=table, namespace=namespace, version=version, dataset=dataset)
 
+
 def find_one(*args: Optional[str], **kwargs: Optional[str]) -> Table:
     return find(*args, **kwargs).load()  # type: ignore
 
@@ -395,7 +396,7 @@ def find_latest(
     namespace: Optional[str] = None,
     dataset: Optional[str] = None,
     channels: Iterable[CHANNEL] = ("garden",),
-) -> "CatalogFrame":
+) -> Table:
     global REMOTE_CATALOG
 
     # add channel if missing and reinit remote catalog
