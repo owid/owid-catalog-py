@@ -189,6 +189,9 @@ class Dataset:
     def _index_file(self) -> str:
         return join(self.path, "index.json")
 
+    def __bool__(self) -> bool:
+        return True
+
     def __len__(self) -> int:
         return len(self.table_names)
 

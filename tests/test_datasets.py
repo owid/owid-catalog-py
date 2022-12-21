@@ -11,7 +11,7 @@ from glob import glob
 from os import rmdir
 from os.path import exists, join
 from pathlib import Path
-from typing import Iterator, Union
+from typing import Any, Iterator, Optional, Union
 
 import pytest
 import yaml
@@ -254,6 +254,11 @@ def test_update_metadata(tmp_path):
         assert d[table_name]["gdp"].metadata.title == "Variable title from YAML"
 
 
+def test_bool():
+    with mock_dataset(n_tables=0) as d:
+        assert bool(d)
+
+
 @contextmanager
 def temp_dataset_dir(create: bool = False) -> Iterator[str]:
     with tempfile.TemporaryDirectory() as dirname:
@@ -262,20 +267,24 @@ def temp_dataset_dir(create: bool = False) -> Iterator[str]:
         yield dirname
 
 
-def create_temp_dataset(dirname: Union[Path, str]) -> Dataset:
+def create_temp_dataset(dirname: Union[Path, str], n_tables: Optional[int] = None) -> Dataset:
     d = Dataset.create_empty(dirname)
     d.metadata = mock(DatasetMeta)
     d.metadata.short_name = Path(dirname).name
     d.metadata.is_public = True
     d.save()
-    for _ in range(random.randint(2, 5)):
+
+    if n_tables is None:
+        n_tables = random.randint(2, 5)
+
+    for _ in range(n_tables):
         t = mock_table()
         d.add(t)
     return d
 
 
 @contextmanager
-def mock_dataset() -> Iterator[Dataset]:
+def mock_dataset(**kwargs: Any) -> Iterator[Dataset]:
     with temp_dataset_dir() as dirname:
-        d = create_temp_dataset(dirname)
+        d = create_temp_dataset(dirname, **kwargs)
         yield d
