@@ -214,7 +214,7 @@ t = Table.read_csv('/tmp/my_table.csv')
 
 ## Changelog
 
-- `dev`
+- `v0.3.4`
   - Bump `pyarrow` dependency to enable Python 3.11 support
 - `v0.3.3`
   - Add more arguments to `Table.__init__` that are often used in ETL
