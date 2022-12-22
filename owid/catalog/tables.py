@@ -16,10 +16,10 @@ import pyarrow.parquet as pq
 import requests
 import structlog
 import yaml
+from owid.repack import repack_frame
 from pandas.util._decorators import rewrite_axis_style_signature
 
 from . import variables
-from .frames import repack_frame
 from .meta import Source, TableMeta, VariableMeta
 
 log = structlog.get_logger()

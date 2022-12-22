@@ -214,6 +214,8 @@ t = Table.read_csv('/tmp/my_table.csv')
 
 ## Changelog
 
+- `dev`
+  - Remove `catalog.frames`; use `owid-repack` package instead
 - `v0.3.4`
   - Bump `pyarrow` dependency to enable Python 3.11 support
 - `v0.3.3`
