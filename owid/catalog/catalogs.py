@@ -402,10 +402,12 @@ def find_latest(
     namespace: Optional[str] = None,
     dataset: Optional[str] = None,
     channels: Iterable[CHANNEL] = ("garden",),
+    version: Optional[str] = None,
 ) -> Table:
     REMOTE_CATALOG = _load_remote_catalog(channels=channels)
 
-    return REMOTE_CATALOG.find_latest(table=table, namespace=namespace, dataset=dataset)
+    # If version is not specified, it will find the latest version given all other specifications.
+    return REMOTE_CATALOG.find_latest(table=table, namespace=namespace, dataset=dataset, version=version)
 
 
 def _download_private_file(uri: str, tmpdir: str) -> str:
