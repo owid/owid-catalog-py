@@ -123,6 +123,11 @@ class Dataset:
         if not self.metadata.namespace:
             warnings.warn(f"Dataset {self.metadata.short_name} is missing namespace")
 
+        # determine channel automatically from path
+        # NOTE: shouldn't we force channel/namespace/version/short_name to be filled from path?
+        channel, _, _, _ = str(self.path).split("/")[-4:]
+        self.metadata.channel = channel
+
         self.metadata.save(self._index_file)
 
         # Update the copy of this datasets metadata in every table in the set.
