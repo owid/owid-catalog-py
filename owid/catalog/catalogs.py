@@ -368,13 +368,7 @@ class CatalogSeries(pd.Series):
         raise ValueError("series is not a table spec")
 
 
-def find(
-    table: Optional[str] = None,
-    namespace: Optional[str] = None,
-    version: Optional[str] = None,
-    dataset: Optional[str] = None,
-    channels: Iterable[CHANNEL] = ("garden",),
-) -> "CatalogFrame":
+def _load_remote_catalog(channels):
     global REMOTE_CATALOG
 
     # add channel if missing and reinit remote catalog
@@ -383,6 +377,18 @@ def find(
 
     if not REMOTE_CATALOG:
         REMOTE_CATALOG = RemoteCatalog(channels=channels)
+
+    return REMOTE_CATALOG
+
+
+def find(
+    table: Optional[str] = None,
+    namespace: Optional[str] = None,
+    version: Optional[str] = None,
+    dataset: Optional[str] = None,
+    channels: Iterable[CHANNEL] = ("garden",),
+) -> "CatalogFrame":
+    REMOTE_CATALOG = _load_remote_catalog(channels=channels)
 
     return REMOTE_CATALOG.find(table=table, namespace=namespace, version=version, dataset=dataset)
 
@@ -397,14 +403,7 @@ def find_latest(
     dataset: Optional[str] = None,
     channels: Iterable[CHANNEL] = ("garden",),
 ) -> Table:
-    global REMOTE_CATALOG
-
-    # add channel if missing and reinit remote catalog
-    if REMOTE_CATALOG and not (set(channels) <= set(REMOTE_CATALOG.channels)):
-        REMOTE_CATALOG = RemoteCatalog(channels=list(set(REMOTE_CATALOG.channels) | set(channels)))
-
-    if not REMOTE_CATALOG:
-        REMOTE_CATALOG = RemoteCatalog(channels=channels)
+    REMOTE_CATALOG = _load_remote_catalog(channels=channels)
 
     return REMOTE_CATALOG.find_latest(table=table, namespace=namespace, dataset=dataset)
 
