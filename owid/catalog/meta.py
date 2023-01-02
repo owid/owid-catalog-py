@@ -126,6 +126,7 @@ class DatasetMeta:
     the variable level.
     """
 
+    channel: Optional[str] = None
     namespace: Optional[str] = None
     # NOTE: short_name should be underscore and validate in setter, however this
     # is nontrivial to do with `dataclass_json` (see https://github.com/lidatong/dataclasses-json/issues/176)
@@ -199,6 +200,15 @@ class DatasetMeta:
         for k, v in annot["dataset"].items():
             if k != "sources":
                 setattr(self, k, v)
+
+    @property
+    def uri(self) -> str:
+        """Return unique URI for this dataset if"""
+        assert self.channel, "DatasetMeta.channel is not set"
+        assert self.namespace, "DatasetMeta.namespace is not set"
+        assert self.version, "DatasetMeta.version is not set"
+        assert self.short_name, "DatasetMeta.short_name is not set"
+        return f"{self.channel}/{self.namespace}/{self.version}/{self.short_name}"
 
 
 @pruned_json

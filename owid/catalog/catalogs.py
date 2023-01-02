@@ -9,7 +9,7 @@ import os
 import re
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, Iterable, Iterator, List, Literal, Optional, Union, cast
+from typing import Any, Dict, Iterable, Iterator, List, Optional, Union, cast
 from urllib.parse import urlparse
 
 import numpy as np
@@ -19,7 +19,7 @@ import requests
 import structlog
 
 from . import s3_utils
-from .datasets import PREFERRED_FORMAT, SUPPORTED_FORMATS, Dataset, FileFormat
+from .datasets import CHANNEL, PREFERRED_FORMAT, SUPPORTED_FORMATS, Dataset, FileFormat
 from .tables import Table
 
 log = structlog.get_logger()
@@ -35,9 +35,6 @@ S3_OWID_URI = "s3://owid-catalog"
 
 # global copy cached after first request
 REMOTE_CATALOG: Optional["RemoteCatalog"] = None
-
-# available channels in the catalog
-CHANNEL = Literal["garden", "meadow", "grapher", "backport", "open_numbers", "examples", "explorers"]
 
 # what formats should we for our index of available datasets?
 INDEX_FORMATS: List[FileFormat] = ["feather", "parquet"]

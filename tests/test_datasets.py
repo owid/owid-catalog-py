@@ -259,6 +259,31 @@ def test_bool():
         assert bool(d)
 
 
+def test_save_fills_channel(tmp_path: Path):
+    path = tmp_path / "garden/owid/latest/shortname"
+    path.parent.mkdir(exist_ok=True, parents=True)
+
+    d = Dataset.create_empty(path)
+    d.metadata = mock(DatasetMeta)
+    d.save()
+
+    d2 = Dataset(path)
+    assert d2.metadata.channel == "garden"
+
+
+def test_save_without_valid_channel(tmp_path: Path):
+    path = tmp_path / "invalid/owid/latest/shortname"
+    path.parent.mkdir(exist_ok=True, parents=True)
+
+    d = Dataset.create_empty(path)
+    d.metadata = mock(DatasetMeta)
+    d.metadata.channel = None
+    d.save()
+
+    d2 = Dataset(path)
+    assert d2.metadata.channel is None
+
+
 @contextmanager
 def temp_dataset_dir(create: bool = False) -> Iterator[str]:
     with tempfile.TemporaryDirectory() as dirname:
