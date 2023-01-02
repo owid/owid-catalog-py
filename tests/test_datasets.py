@@ -15,7 +15,6 @@ from typing import Any, Iterator, Optional, Union
 
 import pytest
 import yaml
-
 from owid.catalog import Dataset, DatasetMeta
 
 from .mocking import mock
@@ -269,6 +268,19 @@ def test_save_fills_channel(tmp_path: Path):
 
     d2 = Dataset(path)
     assert d2.metadata.channel == "garden"
+
+
+def test_save_without_valid_channel(tmp_path: Path):
+    path = tmp_path / "invalid/owid/latest/shortname"
+    path.parent.mkdir(exist_ok=True, parents=True)
+
+    d = Dataset.create_empty(path)
+    d.metadata = mock(DatasetMeta)
+    d.metadata.channel = None
+    d.save()
+
+    d2 = Dataset(path)
+    assert d2.metadata.channel is None
 
 
 @contextmanager

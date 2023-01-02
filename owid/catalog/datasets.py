@@ -37,6 +37,9 @@ assert set(DEFAULT_FORMATS).issubset(SUPPORTED_FORMATS)
 assert PREFERRED_FORMAT in DEFAULT_FORMATS
 assert SUPPORTED_FORMATS[0] == PREFERRED_FORMAT
 
+# available channels in the catalog
+CHANNEL = Literal["garden", "meadow", "grapher", "backport", "open_numbers", "examples", "explorers"]
+
 
 @dataclass
 class Dataset:
@@ -126,8 +129,11 @@ class Dataset:
         # determine channel automatically from path
         # NOTE: shouldn't we force channel/namespace/version/short_name to be filled from path?
         # see https://github.com/owid/owid-catalog-py/pull/79#issue-1507959097 for discussion
-        channel, _, _, _ = str(self.path).split("/")[-4:]
-        self.metadata.channel = channel
+        parts = str(self.path).split("/")
+        if len(parts) >= 4:
+            channel, _, _, _ = parts[-4:]
+            if channel in CHANNEL.__args__:
+                self.metadata.channel = channel
 
         self.metadata.save(self._index_file)
 
