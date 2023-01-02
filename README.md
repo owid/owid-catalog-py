@@ -217,6 +217,7 @@ t = Table.read_csv('/tmp/my_table.csv')
 - `dev`
   - Remove `catalog.frames`; use `owid-repack` package instead
   - Relax dependency constraints
+  - Add optional `channel` argument to `DatasetMeta`
 - `v0.3.4`
   - Bump `pyarrow` dependency to enable Python 3.11 support
 - `v0.3.3`

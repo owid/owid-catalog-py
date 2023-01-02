@@ -9,7 +9,7 @@ import os
 import re
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, Iterable, Iterator, List, Literal, Optional, Union, cast
+from typing import Any, Dict, Iterable, Iterator, List, Optional, Union, cast
 from urllib.parse import urlparse
 
 import numpy as np

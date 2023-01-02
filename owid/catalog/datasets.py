@@ -132,7 +132,7 @@ class Dataset:
         parts = str(self.path).split("/")
         if len(parts) >= 4:
             channel, _, _, _ = parts[-4:]
-            if channel in CHANNEL.__args__:
+            if channel in CHANNEL.__args__:  # type: ignore
                 self.metadata.channel = channel
 
         self.metadata.save(self._index_file)
