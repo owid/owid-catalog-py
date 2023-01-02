@@ -15,6 +15,7 @@ from typing import Any, Iterator, Optional, Union
 
 import pytest
 import yaml
+
 from owid.catalog import Dataset, DatasetMeta
 
 from .mocking import mock

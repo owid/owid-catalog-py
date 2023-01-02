@@ -125,6 +125,7 @@ class Dataset:
 
         # determine channel automatically from path
         # NOTE: shouldn't we force channel/namespace/version/short_name to be filled from path?
+        # see https://github.com/owid/owid-catalog-py/pull/79#issue-1507959097 for discussion
         channel, _, _, _ = str(self.path).split("/")[-4:]
         self.metadata.channel = channel
 
