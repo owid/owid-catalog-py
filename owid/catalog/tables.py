@@ -24,7 +24,8 @@ from .meta import Source, TableMeta, VariableMeta
 
 log = structlog.get_logger()
 
-SCHEMA = json.load(open(join(dirname(__file__), "schemas", "table.json")))
+with open(join(dirname(__file__), "schemas", "table.json")) as f:
+    SCHEMA = json.load(f)
 METADATA_FIELDS = list(SCHEMA["properties"])
 
 
@@ -212,13 +213,25 @@ class Table(pd.DataFrame):
         # create a pyarrow table with metadata in the schema
         # (some metadata gets auto-generated to help pandas deserialise better, we want to keep that)
         t = pyarrow.Table.from_pandas(df)
-        new_metadata = {
+        table_metadata = {
             b"owid_table": json.dumps(self.metadata.to_dict(), default=str),  # type: ignore
-            b"owid_fields": json.dumps(self._get_fields_as_dict(), default=str),
             b"primary_key": json.dumps(self.primary_key),
             **t.schema.metadata,
         }
-        schema = t.schema.with_metadata(new_metadata)
+
+        # add metadata to each field
+        owid_fields = self._get_fields_as_dict()
+
+        fields = []
+        for f in t.schema:
+            field_metadata = owid_fields.get(f.name, {})
+            fields.append(
+                f.with_metadata(
+                    {**{k: json.dumps(v, default=str) for k, v in field_metadata.items()}, **(f.metadata or {})}
+                )
+            )
+
+        schema = pyarrow.schema(fields, metadata=table_metadata)
         t = t.cast(schema)
 
         # write the combined table to disk

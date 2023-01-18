@@ -59,6 +59,10 @@ class CatalogMixin:
     ) -> "CatalogFrame":
         criteria: npt.ArrayLike = np.ones(len(self.frame), dtype=bool)
 
+        # someone can pass integers as versions
+        if version is not None and not isinstance(version, str):
+            version = str(version)
+
         if table:
             criteria &= self.frame.table.str.contains(table)
 
@@ -386,7 +390,6 @@ def find(
     channels: Iterable[CHANNEL] = ("garden",),
 ) -> "CatalogFrame":
     REMOTE_CATALOG = _load_remote_catalog(channels=channels)
-
     return REMOTE_CATALOG.find(table=table, namespace=namespace, version=version, dataset=dataset)
 
 

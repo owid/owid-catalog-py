@@ -11,7 +11,8 @@ import pandas as pd
 from .meta import VariableMeta
 from .properties import metadata_property
 
-SCHEMA = json.load(open(path.join(path.dirname(__file__), "schemas", "table.json")))
+with open(path.join(path.dirname(__file__), "schemas", "table.json")) as f:
+    SCHEMA = json.load(f)
 METADATA_FIELDS = list(SCHEMA["properties"])
 
 
