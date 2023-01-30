@@ -4,6 +4,7 @@
 
 import hashlib
 import json
+import re
 import shutil
 import warnings
 from dataclasses import dataclass
@@ -72,6 +73,9 @@ class Dataset:
 
         metadata = metadata or DatasetMeta()
 
+        # reset channel if we're creating a new dataset to prevent copying meadow to garden
+        metadata.channel = None
+
         index_file = path / "index.json"
         metadata.save(index_file)
 
@@ -119,6 +123,39 @@ class Dataset:
     def __contains__(self, name: str) -> bool:
         return any((Path(self.path) / name).with_suffix(f".{format}").exists() for format in SUPPORTED_FORMATS)
 
+    def _set_metadata_from_path(self) -> None:
+        """Extract metadata from path if it matches our naming convention. Set only channel
+        if it's not set already. Raise exception if metadata doesn't match path. In the future
+        we might want to set all metadata from path implicitly."""
+        # determine channel automatically from path
+        pattern = (
+            r"\/"
+            + r"\/".join(
+                [
+                    f"(?P<channel>{'|'.join(CHANNEL.__args__)})",
+                    "(?P<namespace>.*?)",
+                    r"(?P<version>\d{4}\-\d{2}\-\d{2}|\d{4}|latest)",
+                    "(?P<short_name>.*?)",
+                ]
+            )
+            + "$"
+        )
+
+        match = re.search(pattern, str(self.path))
+        if match:
+            groups = match.groupdict()
+
+            # set channel if it's not set
+            if not self.metadata.channel:
+                self.metadata.channel = groups["channel"]
+
+            # make sure others match, otherwise raise exception
+            for k, v in groups.items():
+                if getattr(self.metadata, k) != v:
+                    raise Exception(
+                        f"Metadata {k} '{getattr(self.metadata, k)}' does not match its path '{str(self.path)}'"
+                    )
+
     def save(self) -> None:
         assert self.metadata.short_name, "Missing dataset short_name"
         utils.validate_underscore(self.metadata.short_name, "Dataset's short_name")
@@ -126,14 +163,7 @@ class Dataset:
         if not self.metadata.namespace:
             warnings.warn(f"Dataset {self.metadata.short_name} is missing namespace")
 
-        # determine channel automatically from path
-        # NOTE: shouldn't we force channel/namespace/version/short_name to be filled from path?
-        # see https://github.com/owid/owid-catalog-py/pull/79#issue-1507959097 for discussion
-        parts = str(self.path).split("/")
-        if len(parts) >= 4:
-            channel, _, _, _ = parts[-4:]
-            if channel in CHANNEL.__args__:  # type: ignore
-                self.metadata.channel = channel
+        self._set_metadata_from_path()
 
         self.metadata.save(self._index_file)
 
