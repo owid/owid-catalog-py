@@ -212,14 +212,16 @@ class Table(pd.DataFrame):
         # create a pyarrow table with metadata in the schema
         # (some metadata gets auto-generated to help pandas deserialise better, we want to keep that)
         t = pyarrow.Table.from_pandas(df)
-        new_metadata = {
-            b"owid_table": json.dumps(self.metadata.to_dict(), default=str),  # type: ignore
-            b"owid_fields": json.dumps(self._get_fields_as_dict(), default=str),
-            b"primary_key": json.dumps(self.primary_key),
-            **t.schema.metadata,
-        }
-        schema = t.schema.with_metadata(new_metadata)
-        t = t.cast(schema)
+
+        # adding metadata would make reading partial content inefficient, see https://github.com/owid/etl/issues/783
+        # new_metadata = {
+        #     b"owid_table": json.dumps(self.metadata.to_dict(), default=str),  # type: ignore
+        #     b"owid_fields": json.dumps(self._get_fields_as_dict(), default=str),
+        #     b"primary_key": json.dumps(self.primary_key),
+        #     **t.schema.metadata,
+        # }
+        # schema = t.schema.with_metadata(new_metadata)
+        # t = t.cast(schema)
 
         # write the combined table to disk
         pq.write_table(t, path)
@@ -293,6 +295,20 @@ class Table(pd.DataFrame):
         return t
 
     @classmethod
+    def _add_metadata(cls, df: pd.DataFrame, path: str) -> None:
+        """Read metadata from JSON sidecar and add it to the dataframe."""
+        metadata = cls._read_metadata(path)
+
+        primary_key = metadata.get("primary_key", [])
+        fields = metadata.pop("fields") if "fields" in metadata else {}
+
+        df.metadata = TableMeta.from_dict(metadata)
+        df._set_fields_from_dict(fields)
+
+        if primary_key:
+            df.set_index(primary_key, inplace=True)
+
+    @classmethod
     def read_feather(cls, path: Union[str, Path]) -> "Table":
         """
         Read the table from feather plus accompanying JSON sidecar.
@@ -305,27 +321,15 @@ class Table(pd.DataFrame):
         if not path.endswith(".feather"):
             raise ValueError(f'filename must end in ".feather": {path}')
 
-        # load the data
+        # load the data and add metadata
         df = Table(pd.read_feather(path))
-
-        # load the metadata
-        metadata = cls._read_metadata(path)
-
-        primary_key = metadata.get("primary_key", [])
-        fields = metadata.pop("fields") if "fields" in metadata else {}
-
-        df.metadata = TableMeta.from_dict(metadata)
-        df._set_fields_from_dict(fields)
-
-        if primary_key:
-            df.set_index(primary_key, inplace=True)
-
+        cls._add_metadata(df, path)
         return df
 
     @classmethod
     def read_parquet(cls, path: Union[str, Path]) -> "Table":
         """
-        Read the table from a parquet file, and unpack the schema metadata.
+        Read the table from a parquet file plus accompanying JSON sidecar.
 
         The path may be a local file path or a URL.
         """
@@ -335,21 +339,9 @@ class Table(pd.DataFrame):
         if not path.endswith(".parquet"):
             raise ValueError(f'filename must end in ".parquet": {path}')
 
-        # load the data as a pyarrow table
-        t = pq.read_table(path)
-        df = Table(t.to_pandas())
-
-        # look for embedded table and field metadata in the table schema
-        if b"owid_table" in t.schema.metadata:
-            df.metadata = TableMeta.from_json(t.schema.metadata[b"owid_table"])  # type: ignore
-        if b"owid_fields" in t.schema.metadata:
-            fields = json.loads(t.schema.metadata[b"owid_fields"])
-            df._set_fields_from_dict(fields)
-        if b"primary_key" in t.schema.metadata:
-            primary_key = json.loads(t.schema.metadata[b"primary_key"])
-            if primary_key:
-                df.set_index(primary_key, inplace=True)
-
+        # load the data and add metadata
+        df = Table(pd.read_parquet(path))
+        cls._add_metadata(df, path)
         return df
 
     def _get_fields_as_dict(self) -> Dict[str, Any]:
