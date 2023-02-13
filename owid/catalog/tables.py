@@ -226,6 +226,8 @@ class Table(pd.DataFrame):
         # write the combined table to disk
         pq.write_table(t, path)
 
+        self._save_metadata(self.metadata_filename(path))
+
     def _save_metadata(self, filename: str) -> None:
         # write metadata
         with open(filename, "w") as ostream:

@@ -144,8 +144,8 @@ def test_add_table_parquet():
         # check that it's really on disk
         assert exists(join(dirname, t.metadata.checked_name + ".parquet"))
 
-        # reaffirm that metadata is not coming from a JSON file
-        assert not exists(join(dirname, t.metadata.checked_name + ".meta.json"))
+        # metadata exists as a sidecar JSON
+        assert exists(join(dirname, t.metadata.checked_name + ".meta.json"))
 
         # load a fresh copy from disk
         t2 = ds[t.metadata.checked_name]
