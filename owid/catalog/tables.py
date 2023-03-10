@@ -422,7 +422,7 @@ class Table(pd.DataFrame):
         t_annot = annot["tables"][table_name]
 
         # update variables
-        for v_short_name, v_annot in (t_annot["variables"] or {}).items():
+        for v_short_name, v_annot in (t_annot.get("variables", {}) or {}).items():
             for k, v in v_annot.items():
                 # create an object out of sources
                 if k == "sources":
