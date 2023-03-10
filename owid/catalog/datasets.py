@@ -158,7 +158,7 @@ class Dataset:
 
         with open(metadata_path) as istream:
             metadata = yaml.safe_load(istream)
-            for table_name in metadata["tables"].keys():
+            for table_name in metadata.get("tables", {}).keys():
                 table = self[table_name]
                 table.update_metadata_from_yaml(metadata_path, table_name)
                 table._save_metadata(join(self.path, table.metadata.checked_name + ".meta.json"))

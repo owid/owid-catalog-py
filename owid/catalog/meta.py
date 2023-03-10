@@ -175,7 +175,7 @@ class DatasetMeta:
         with open(path) as istream:
             annot = yaml.safe_load(istream)
 
-        dataset_sources = annot["dataset"].get("sources", []) or []
+        dataset_sources = annot.get("dataset", {}).get("sources", []) or []
 
         # update sources of dataset, if there are no sources in the new dataset, don't update existing ones
         if if_source_exists == "replace" and dataset_sources:
@@ -197,7 +197,7 @@ class DatasetMeta:
         self.sources.extend(new_sources)
 
         # update dataset
-        for k, v in annot["dataset"].items():
+        for k, v in annot.get("dataset", {}).items():
             if k != "sources":
                 setattr(self, k, v)
 
