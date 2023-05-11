@@ -368,7 +368,12 @@ class Table(pd.DataFrame):
         # propagate metadata when we add a series to a table
         if isinstance(key, str):
             if isinstance(value, variables.Variable):
-                self._fields[key] = value.metadata
+                try:
+                    self._fields[key] = value.metadata
+                except ValueError:
+                    # This error is raised e.g. when creating a new variable which is an operation between two other
+                    # existing columns in the table.
+                    self._fields[key] = VariableMeta()
             else:
                 self._fields[key] = VariableMeta()
 
