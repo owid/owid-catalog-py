@@ -295,7 +295,6 @@ def test_copy_metadata_from() -> None:
 
 def test_addition_without_metadata() -> None:
     t: Table = Table({"a": [1, 2], "b": [3, 4]})
-    __import__("ipdb").set_trace()
     t["c"] = t["a"] + t["b"]
     assert t.c.metadata == VariableMeta()
 
