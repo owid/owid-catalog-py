@@ -303,6 +303,27 @@ def test_addition_with_metadata() -> None:
     t: Table = Table({"a": [1, 2], "b": [3, 4]})
     t.a.metadata.title = "A"
     t.b.metadata.title = "B"
-    # addition should not inherit metadata
+
     t["c"] = t["a"] + t["b"]
+
+    # addition should not inherit metadata
     assert t.c.metadata == VariableMeta()
+
+    t.c.metadata.title = "C"
+
+    # addition shouldn't change the metadata of the original columns
+    assert t.a.metadata.title == "A"
+    assert t.b.metadata.title == "B"
+    assert t.c.metadata.title == "C"
+
+
+def test_addition_same_variable() -> None:
+    t: Table = Table({"a": [1, 2], "b": [3, 4]})
+    t.a.metadata.title = "A"
+    t.b.metadata.title = "B"
+
+    t["a"] = t["a"] + t["b"]
+
+    # addition shouldn't change the metadata of the original columns
+    assert t.a.metadata.title == "A"
+    assert t.b.metadata.title == "B"
