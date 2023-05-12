@@ -10,6 +10,7 @@ import jsonschema
 import numpy as np
 import pandas as pd
 import pytest
+
 from owid.catalog.datasets import FileFormat
 from owid.catalog.meta import TableMeta, VariableMeta
 from owid.catalog.tables import SCHEMA, Table
