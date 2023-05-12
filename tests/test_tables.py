@@ -10,7 +10,6 @@ import jsonschema
 import numpy as np
 import pandas as pd
 import pytest
-
 from owid.catalog.datasets import FileFormat
 from owid.catalog.meta import TableMeta, VariableMeta
 from owid.catalog.tables import SCHEMA, Table
@@ -291,3 +290,19 @@ def test_copy_metadata_from() -> None:
     assert t2.gdp.metadata.title == "GDP"
     assert t2.country.metadata.title == "Country"
     assert t2.metadata.title == "GDP table"
+
+
+def test_addition_without_metadata() -> None:
+    t: Table = Table({"a": [1, 2], "b": [3, 4]})
+    __import__("ipdb").set_trace()
+    t["c"] = t["a"] + t["b"]
+    assert t.c.metadata == VariableMeta()
+
+
+def test_addition_with_metadata() -> None:
+    t: Table = Table({"a": [1, 2], "b": [3, 4]})
+    t.a.metadata.title = "A"
+    t.b.metadata.title = "B"
+    # addition should not inherit metadata
+    t["c"] = t["a"] + t["b"]
+    assert t.c.metadata == VariableMeta()
