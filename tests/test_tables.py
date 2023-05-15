@@ -335,7 +335,20 @@ def test_set_index_keeps_metadata() -> None:
     tb["b"].metadata.title = "B"
 
     tb_new = tb.set_index(["a"])
-    tb_new = tb_new.reset_index()  # type: ignore
+    tb_new = tb_new.reset_index()
+
+    # metadata should be preserved
+    assert tb_new["a"].metadata.title == "A"
+    assert tb_new["b"].metadata.title == "B"
+
+
+def test_set_index_keeps_metadata_inplace() -> None:
+    tb = Table(pd.DataFrame({"a": [1, 2], "b": [3, 4]}))
+    tb["a"].metadata.title = "A"
+    tb["b"].metadata.title = "B"
+
+    tb_new = tb.set_index(["a"])
+    tb_new.reset_index(inplace=True)
 
     # metadata should be preserved
     assert tb_new["a"].metadata.title == "A"
