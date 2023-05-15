@@ -484,4 +484,7 @@ class Table(pd.DataFrame):
 
     def reset_index(self, *args, **kwargs) -> "Table":  # type: ignore
         """Fix type signature of reset_index."""
-        return super().reset_index(*args, **kwargs)  # type: ignore
+        t = super().reset_index(*args, **kwargs)
+        # preserve metadata in _fields, calling reset_index() on a table drops it
+        t._fields = self._fields
+        return t  # type: ignore

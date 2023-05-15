@@ -327,3 +327,16 @@ def test_addition_same_variable() -> None:
     # addition shouldn't change the metadata of the original columns
     assert t.a.metadata.title == "A"
     assert t.b.metadata.title == "B"
+
+
+def test_set_index_keeps_metadata() -> None:
+    tb = Table(pd.DataFrame({"a": [1, 2], "b": [3, 4]}))
+    tb["a"].metadata.title = "A"
+    tb["b"].metadata.title = "B"
+
+    tb_new = tb.set_index(["a"])
+    tb_new = tb_new.reset_index()  # type: ignore
+
+    # metadata should be preserved
+    assert tb_new["a"].metadata.title == "A"
+    assert tb_new["b"].metadata.title == "B"
