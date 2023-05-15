@@ -8,7 +8,7 @@ import json
 from collections import defaultdict
 from os.path import dirname, join, splitext
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, Union, cast
+from typing import Any, Dict, List, Literal, Optional, Union, cast, overload
 
 import pandas as pd
 import pyarrow
@@ -264,38 +264,6 @@ class Table(pd.DataFrame):
 
         return df
 
-    def set_index(  # type: ignore
-        self,
-        keys: Union[str, List[str]],
-        inplace: bool = False,
-        drop: bool = True,
-        append: bool = False,
-        verify_integrity: bool = False,
-    ) -> Optional[pd.DataFrame]:
-        if isinstance(keys, str):
-            keys = [keys]
-
-        if inplace:
-            super().set_index(
-                keys,
-                inplace=True,
-                drop=drop,
-                append=append,
-                verify_integrity=verify_integrity,
-            )
-            self.metadata.primary_key = keys
-            return None
-
-        t = super().set_index(
-            keys,
-            inplace=False,
-            drop=drop,
-            append=append,
-            verify_integrity=verify_integrity,
-        )
-        t.metadata.primary_key = keys
-        return t
-
     @classmethod
     def _add_metadata(cls, df: pd.DataFrame, path: str) -> None:
         """Read metadata from JSON sidecar and add it to the dataframe."""
@@ -482,6 +450,58 @@ class Table(pd.DataFrame):
                 new_fields[k] = self._fields[k]
         self._fields = new_fields
 
-    def reset_index(self, *args, **kwargs) -> "Table":  # type: ignore
+    @overload
+    def set_index(
+        self,
+        keys: Union[str, List[str]],
+        *,
+        inplace: Literal[True],
+    ) -> None:
+        ...
+
+    @overload
+    def set_index(self, keys: Union[str, List[str]], *, inplace: Literal[False]) -> "Table":
+        ...
+
+    @overload
+    def set_index(self, keys: Union[str, List[str]]) -> "Table":
+        ...
+
+    def set_index(
+        self,
+        keys: Union[str, List[str]],
+        **kwargs,
+    ) -> Optional["Table"]:
+        if isinstance(keys, str):
+            keys = [keys]
+
+        if kwargs.get("inplace"):
+            super().set_index(keys, **kwargs)
+            self.metadata.primary_key = keys
+            return None
+        else:
+            t = super().set_index(keys, **kwargs)
+            t.metadata.primary_key = keys
+            return cast(Table, t)
+
+    @overload
+    def reset_index(self, *, inplace: Literal[True]) -> None:
+        ...
+
+    @overload
+    def reset_index(self, *, inplace: Literal[False]) -> "Table":
+        ...
+
+    @overload
+    def reset_index(self) -> "Table":
+        ...
+
+    def reset_index(self, *args, **kwargs) -> Optional["Table"]:  # type: ignore
         """Fix type signature of reset_index."""
-        return super().reset_index(*args, **kwargs)  # type: ignore
+        t = super().reset_index(*args, **kwargs)
+        if kwargs.get("inplace"):
+            return None
+        else:
+            # preserve metadata in _fields, calling reset_index() on a table drops it
+            t._fields = self._fields
+            return t  # type: ignore
