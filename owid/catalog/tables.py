@@ -125,15 +125,21 @@ class Table(pd.DataFrame):
             path = path.as_posix()
 
         if path.endswith(".csv"):
-            return cls.read_csv(path)
+            table = cls.read_csv(path)
 
         elif path.endswith(".feather"):
-            return cls.read_feather(path)
+            table = cls.read_feather(path)
 
         elif path.endswith(".parquet"):
-            return cls.read_parquet(path)
+            table = cls.read_parquet(path)
+        else:
+            raise ValueError(f"could not detect a suitable format to read from: {path}")
 
-        raise ValueError(f"could not detect a suitable format to read from: {path}")
+        # # Add processing log to the metadata of each variable in the table.
+        # TODO: Unit tests fail when adding processing log to each variable.
+        # table = _add_processing_log_to_each_loaded_variable(table)
+
+        return table
 
     # Mypy complaints about this not matching the defintiion of NDFrame.to_csv but I don't understand why
     def to_csv(self, path: Any, **kwargs: Any) -> None:  # type: ignore
@@ -505,3 +511,61 @@ class Table(pd.DataFrame):
             # preserve metadata in _fields, calling reset_index() on a table drops it
             t._fields = self._fields
             return t  # type: ignore
+
+    def merge(self, right, *args, **kwargs) -> "Table":
+        return merge(left=self, right=right, *args, **kwargs)
+
+    def melt(self, *args, **kwargs) -> "Table":
+        return melt(frame=self, *args, **kwargs)
+
+    def pivot(self, *args, **kwargs) -> "Table":
+        return pivot(data=self, *args, **kwargs)
+
+
+# TODO: Handle metadata and processing info for each of the following functions.
+def merge(*args, **kwargs) -> Table:
+    return Table(pd.merge(*args, **kwargs))
+
+
+def concat(*args, **kwargs) -> Table:
+    return Table(pd.concat(*args, **kwargs))
+
+
+def melt(*args, **kwargs) -> Table:
+    return Table(pd.melt(*args, **kwargs))
+
+
+def pivot(*args, **kwargs) -> Table:
+    return Table(pd.pivot(*args, **kwargs))
+
+
+def read_csv(*args, **kwargs) -> Table:
+    return Table(pd.read_csv(*args, **kwargs))
+
+
+def read_excel(*args, **kwargs) -> Table:
+    return Table(pd.read_excel(*args, **kwargs))
+
+
+def _add_processing_log_to_each_loaded_variable(table):
+    # Add entry to processing log, specifying that each variable was loaded from this table.
+    # Generate a URI for the table.
+    table_uri = f"{table.metadata.dataset.uri}/{table.metadata.short_name}"
+    # Get the names of the columns currently used for the index of the table (if any).
+    index_columns = table.metadata.primary_key
+
+    # If the table has an index, reset it so we have access to all variables in the table.
+    if len(index_columns) > 0:
+        table = table.reset_index(drop=False)
+    for column in table.columns:
+        # If no processing log is found for a variable, start a new one.
+        if table[column].metadata.processing_log is None:
+            table[column].metadata.processing_log = []
+        # Append a new entry to the processing log.
+        table[column].metadata.processing_log.append(
+            [{"variable": column, "parents": [table_uri], "operation": "load"}]
+        )
+    if len(index_columns) > 0:
+        table = table.set_index(index_columns)
+
+    return table
