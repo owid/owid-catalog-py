@@ -5,7 +5,7 @@
 import pytest
 
 from owid.catalog.meta import VariableMeta
-from owid.catalog.variables import Variable
+from owid.catalog.variables import UNNAMED_VARIABLE, Variable
 
 
 def test_create_empty_variable() -> None:
@@ -15,14 +15,14 @@ def test_create_empty_variable() -> None:
 
 def test_create_unnamed_variable_fails() -> None:
     v = Variable()
-    assert v.name is None
+    assert v.name is UNNAMED_VARIABLE
 
     # cannot access a metadata attribute without a name
-    with pytest.raises(ValueError):
+    with pytest.raises(KeyError):
         v.title
 
     # cannot set a metadata attribute without a name
-    with pytest.raises(ValueError):
+    with pytest.raises(KeyError):
         v.description = "Hello"
 
 
