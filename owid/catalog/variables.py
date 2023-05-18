@@ -66,9 +66,9 @@ class Variable(pd.Series):
             # make sure there is always a placeholder metadata object
             if name not in self._fields:
                 self._fields[name] = VariableMeta()
-        else:
-            # See comments above, where UNNAMED_VARIABLE is defined, explaining this.
-            name = UNNAMED_VARIABLE
+        # else:
+        #     # See comments above, where UNNAMED_VARIABLE is defined, explaining this.
+        #     name = UNNAMED_VARIABLE
 
         self._name = name
 
@@ -107,14 +107,57 @@ class Variable(pd.Series):
         v.name = self.name
         return cast(Variable, v)
 
-    def __add__(self, other: Union[Scalar, Series]) -> Series:
-        variable = super().__add__(other)
-        variable.metadata = combine_variables_metadata(variables=[self, other], operation="+", name=self.name)
+    # TODO: If I set the type hint of the following functions to -> "Variable" I get typing errors.
 
+    def __add__(self, other: Union[Scalar, Series, "Variable"]) -> Series:
+        # variable = super().__add__(other)
+        variable = Variable(self.values + other, name=UNNAMED_VARIABLE)  # type: ignore
+        variable.metadata = combine_variables_metadata(variables=[self, other], operation="+", name=self.name)
         return variable
 
-    def add(self, other: Union[Scalar, Series]) -> Series:
-        return self.__add__(other=other)
+    def __sub__(self, other: Union[Scalar, Series, "Variable"]) -> Series:
+        # variable = super().__sub__(other)
+        variable = Variable(self.values - other, name=UNNAMED_VARIABLE)  # type: ignore
+        variable.metadata = combine_variables_metadata(variables=[self, other], operation="-", name=self.name)
+        return variable
+
+    def __mul__(self, other: Union[Scalar, Series, "Variable"]) -> Series:
+        # variable = super().__mul__(other)
+        variable = Variable(self.values * other, name=UNNAMED_VARIABLE)  # type: ignore
+        variable.metadata = combine_variables_metadata(variables=[self, other], operation="*", name=self.name)
+        return variable
+
+    def __truediv__(self, other: Union[Scalar, Series, "Variable"]) -> Series:
+        # variable = super().__truediv__(other)
+        variable = Variable(self.values / other, name=UNNAMED_VARIABLE)  # type: ignore
+        variable.metadata = combine_variables_metadata(variables=[self, other], operation="/", name=self.name)
+        return variable
+
+    def __floordiv__(self, other: Union[Scalar, Series, "Variable"]) -> Series:
+        # variable = super().__floordiv__(other)
+        variable = Variable(self.values // other, name=UNNAMED_VARIABLE)  # type: ignore
+        variable.metadata = combine_variables_metadata(variables=[self, other], operation="//", name=self.name)
+        return variable
+
+    def __mod__(self, other: Union[Scalar, Series, "Variable"]) -> Series:
+        # variable = super().__mod__(other)
+        variable = Variable(self.values % other, name=UNNAMED_VARIABLE)  # type: ignore
+        variable.metadata = combine_variables_metadata(variables=[self, other], operation="%", name=self.name)
+        return variable
+
+    def __pow__(self, other: Union[Scalar, Series, "Variable"]) -> Series:
+        # For some reason, the following line modifies the metadata of the original variable.
+        # variable = super().__pow__(other)
+        # So, instead, we define a new variable.
+        variable = Variable(self.values**other, name=UNNAMED_VARIABLE)  # type: ignore
+        variable.metadata = combine_variables_metadata(variables=[self, other], operation="**", name=self.name)
+        return variable
+
+    # TODO: Should we also include the "add", "sub", "mul", "truediv" methods here? For example
+    # def add(self, other: Union[Scalar, Series, "Variable"]) -> "Variable":
+    #     return self.__add__(other=other)
+    # These methods have some additional arguments, namely axis='columns', level=None, fill_value=None that would need
+    # to be implemented here.
 
 
 # dynamically add all metadata properties to the class
@@ -138,12 +181,6 @@ def _combine_variable_units_or_short_units(variables: List[Variable], operation,
         else:
             # Otherwise, assign the common unit.
             unit_or_short_unit_combined = units_or_short_units[0]
-    elif operation == "*":
-        # TODO: Define.
-        pass
-    elif operation == "/":
-        # TODO: Define.
-        pass
 
     return unit_or_short_unit_combined
 
@@ -158,24 +195,30 @@ def combine_variables_short_units(variables: List[Variable], operation) -> Optio
     )
 
 
-def _combine_variables_titles_and_descriptions(variables: List[Variable], title_or_description: str) -> Optional[str]:
+def _combine_variables_titles_and_descriptions(
+    variables: List[Variable], operation: str, title_or_description: str
+) -> Optional[str]:
     # Keep the title only if all variables have exactly the same title.
     # Otherwise we assume that the variable has a different meaning, and its title should be manually handled.
-    titles_or_descriptions = pd.unique([getattr(variable.metadata, title_or_description) for variable in variables])
-    if len(titles_or_descriptions) == 1:
-        title_or_description_combined = titles_or_descriptions[0]
-    else:
-        title_or_description_combined = None
+    title_or_description_combined = None
+    if operation in ["+", "-"]:
+        titles_or_descriptions = pd.unique([getattr(variable.metadata, title_or_description) for variable in variables])
+        if len(titles_or_descriptions) == 1:
+            title_or_description_combined = titles_or_descriptions[0]
 
     return title_or_description_combined
 
 
-def combine_variables_titles(variables: List[Variable]) -> Optional[str]:
-    return _combine_variables_titles_and_descriptions(variables=variables, title_or_description="title")
+def combine_variables_titles(variables: List[Variable], operation: str) -> Optional[str]:
+    return _combine_variables_titles_and_descriptions(
+        variables=variables, operation=operation, title_or_description="title"
+    )
 
 
-def combine_variables_descriptions(variables: List[Variable]) -> Optional[str]:
-    return _combine_variables_titles_and_descriptions(variables=variables, title_or_description="description")
+def combine_variables_descriptions(variables: List[Variable], operation: str) -> Optional[str]:
+    return _combine_variables_titles_and_descriptions(
+        variables=variables, operation=operation, title_or_description="description"
+    )
 
 
 def get_unique_sources_from_variables(variables: List[Variable]) -> List[Source]:
@@ -229,8 +272,8 @@ def combine_variables_metadata(
     variables_only = [variable for variable in variables if hasattr(variable, "metadata")]
 
     # Combine each metadata field using the logic of the specified operation.
-    metadata.title = combine_variables_titles(variables=variables_only)
-    metadata.description = combine_variables_descriptions(variables=variables_only)
+    metadata.title = combine_variables_titles(variables=variables_only, operation=operation)
+    metadata.description = combine_variables_descriptions(variables=variables_only, operation=operation)
     metadata.unit = combine_variables_units(variables=variables_only, operation=operation)
     metadata.short_unit = combine_variables_short_units(variables=variables_only, operation=operation)
     metadata.sources = get_unique_sources_from_variables(variables=variables_only)
