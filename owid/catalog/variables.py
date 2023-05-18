@@ -19,6 +19,18 @@ log = structlog.get_logger()
 SCHEMA = json.load(open(path.join(path.dirname(__file__), "schemas", "table.json")))
 METADATA_FIELDS = list(SCHEMA["properties"])
 
+# When creating a new variable, we need to pass a temporary name. For example, when doing tb["a"] + tb["b"]:
+#  * If variable.name is None, a ValueError is raised.
+#  * If variable.name = self.checked_name then the metadata of the first variable summed ("a") is modified.
+#  * If variable.name is always a random string (that does not coincide with an existing variable) then
+#    when replacing a variable (e.g. tb["a"] += 1) the original variable loses its metadata.
+# For these reasons, we ensure that variable.name is always filled, even with a temporary name.
+# In fact, if the new variable becomes a column in a table, its name gets overwritten by the column name (which is a
+# nice feature). For example, when doing tb["c"] = tb["a"] + tb["b"], the variable name of "c" will be "c", even if we
+# passed a temporary variable name. Therefore, this temporary name may be irrelevant in practice.
+# TODO: Is there a better solution for these issues?
+UNNAMED_VARIABLE = "**TEMPORARY UNNAMED VARIABLE**"
+
 
 class Variable(pd.Series):
     _name: Optional[str] = None
@@ -54,6 +66,9 @@ class Variable(pd.Series):
             # make sure there is always a placeholder metadata object
             if name not in self._fields:
                 self._fields[name] = VariableMeta()
+        else:
+            # See comments above, where UNNAMED_VARIABLE is defined, explaining this.
+            name = UNNAMED_VARIABLE
 
         self._name = name
 
@@ -94,15 +109,7 @@ class Variable(pd.Series):
 
     def __add__(self, other: Union[Scalar, Series]) -> Series:
         variable = super().__add__(other)
-        # TODO: Is there any better solution to the names issue?
-        #  * If variable.name is None, an error is raised.
-        #  * If variable.name = self.checked_name then the metadata of the first variable summed is modified.
-        #  * If variable.name is always a random string (that does not coincide with an existing variable) then
-        #    when replacing a variable (e.g. tb["a"] += 1) it loses its metadata.
-        if variable.name is None:
-            variable.name = "**TEMPORARY UNNAMED VARIABLE**"
-        variable.metadata = combine_variables_metadata(variables=[self, other], operation="+", name=self.name)  # type: ignore
-        # TODO: Currently, the processing log is not catching the name of the new variable, but the one being added.
+        variable.metadata = combine_variables_metadata(variables=[self, other], operation="+", name=self.name)
 
         return variable
 
@@ -199,6 +206,8 @@ def get_unique_licenses_from_variables(variables: List[Variable]) -> List[Licens
 
 def combine_variables_processing_logs(variables: List[Variable]):
     # Make a list with all entries in the processing log of all variables.
+    # TODO: Currently, the processing log is not catching the name of the new variable created, but the first variable
+    #  involved in the operation.
     processing_log = sum(
         [
             variable.metadata.processing_log if variable.metadata.processing_log is not None else []
@@ -210,7 +219,9 @@ def combine_variables_processing_logs(variables: List[Variable]):
     return processing_log
 
 
-def combine_variables_metadata(variables: List[Any], operation: str, name: str = "variable") -> VariableMeta:
+def combine_variables_metadata(
+    variables: List[Any], operation: str, name: Optional[str] = UNNAMED_VARIABLE
+) -> VariableMeta:
     # Initialise an empty metadata.
     metadata = VariableMeta()
 
@@ -225,8 +236,11 @@ def combine_variables_metadata(variables: List[Any], operation: str, name: str =
     metadata.sources = get_unique_sources_from_variables(variables=variables_only)
     metadata.licenses = get_unique_licenses_from_variables(variables=variables_only)
     metadata.processing_log = combine_variables_processing_logs(variables=variables_only)
-    metadata.processing_log.extend(
-        [{"variable": name, "parents": [variable.name for variable in variables_only], "operation": operation}]
-    )
+
+    # List names of variables and scalars (or other objects passed in variables).
+    variables_and_scalars_names = [
+        variable.name if hasattr(variable, "name") else str(variable) for variable in variables
+    ]
+    metadata.processing_log.extend([{"variable": name, "parents": variables_and_scalars_names, "operation": operation}])
 
     return metadata
