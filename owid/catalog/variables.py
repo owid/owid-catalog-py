@@ -153,6 +153,16 @@ class Variable(pd.Series):
         variable.metadata = combine_variables_metadata(variables=[self, other], operation="**", name=self.name)
         return variable
 
+    def fillna(self, value=None, *args, **kwargs) -> Series:
+        # variable = super().fillna(value)
+        # NOTE: Argument "inplace" will modify the original variable's data, but not its metadata.
+        #  But we should not use "inplace" anyway.
+        if "inplace" in kwargs and kwargs["inplace"] is True:
+            log.warning("Avoid using fillna(inplace=True) may not handle metadata as expected.")
+        variable = Variable(super().fillna(value, *args, **kwargs), name=UNNAMED_VARIABLE)  # type: ignore
+        variable.metadata = combine_variables_metadata(variables=[self, value], operation="fillna", name=self.name)
+        return variable
+
     # TODO: Should we also include the "add", "sub", "mul", "truediv" methods here? For example
     # def add(self, other: Union[Scalar, Series, "Variable"]) -> "Variable":
     #     return self.__add__(other=other)

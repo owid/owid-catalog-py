@@ -522,11 +522,22 @@ class Table(pd.DataFrame):
         return pivot(data=self, *args, **kwargs)
 
 
+def merge(left, right, *args, **kwargs) -> Table:
+    # TODO: This function needs further logic. For example, to handle "on"/"left_on"/"right_on" columns,
+    #  or suffixes, or overlapping columns (that will end in "_x" and "_y" by default), or indexes.
+    tb = Table(pd.merge(left, right, *args, **kwargs))
+    columns_that_were_in_left = set(tb.columns) & set(left.columns)
+    columns_that_were_in_right = set(tb.columns) & set(right.columns)
+
+    for column in columns_that_were_in_left:
+        tb[column].metadata = left[column].metadata
+    for column in columns_that_were_in_right:
+        tb[column].metadata = right[column].metadata
+
+    return tb
+
+
 # TODO: Handle metadata and processing info for each of the following functions.
-def merge(*args, **kwargs) -> Table:
-    return Table(pd.merge(*args, **kwargs))
-
-
 def concat(*args, **kwargs) -> Table:
     return Table(pd.concat(*args, **kwargs))
 
