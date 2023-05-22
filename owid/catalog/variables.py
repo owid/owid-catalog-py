@@ -4,7 +4,7 @@
 
 import json
 from os import path
-from typing import Any, Dict, List, Optional, Union, cast
+from typing import Any, Dict, List, Literal, Optional, Union, cast
 
 import pandas as pd
 import structlog
@@ -18,6 +18,10 @@ log = structlog.get_logger()
 
 SCHEMA = json.load(open(path.join(path.dirname(__file__), "schemas", "table.json")))
 METADATA_FIELDS = list(SCHEMA["properties"])
+
+# Defined operations.
+OPERATION = Literal["+", "-", "*", "/", "**", "//", "%", "fillna"]
+
 
 # When creating a new variable, we need to pass a temporary name. For example, when doing tb["a"] + tb["b"]:
 #  * If variable.name is None, a ValueError is raised.
@@ -112,11 +116,17 @@ class Variable(pd.Series):
         variable.metadata = combine_variables_metadata(variables=[self, other], operation="+", name=UNNAMED_VARIABLE)
         return variable
 
+    def __iadd__(self, other: Union[Scalar, Series, "Variable"]) -> Series:
+        return self.__add__(other)
+
     def __sub__(self, other: Union[Scalar, Series, "Variable"]) -> Series:
         # variable = super().__sub__(other)
         variable = Variable(self.values - other, name=UNNAMED_VARIABLE)  # type: ignore
         variable.metadata = combine_variables_metadata(variables=[self, other], operation="-", name=UNNAMED_VARIABLE)
         return variable
+
+    def __isub__(self, other: Union[Scalar, Series, "Variable"]) -> Series:
+        return self.__sub__(other)
 
     def __mul__(self, other: Union[Scalar, Series, "Variable"]) -> Series:
         # variable = super().__mul__(other)
@@ -124,11 +134,17 @@ class Variable(pd.Series):
         variable.metadata = combine_variables_metadata(variables=[self, other], operation="*", name=UNNAMED_VARIABLE)
         return variable
 
+    def __imul__(self, other: Union[Scalar, Series, "Variable"]) -> Series:
+        return self.__mul__(other)
+
     def __truediv__(self, other: Union[Scalar, Series, "Variable"]) -> Series:
         # variable = super().__truediv__(other)
         variable = Variable(self.values / other, name=UNNAMED_VARIABLE)  # type: ignore
         variable.metadata = combine_variables_metadata(variables=[self, other], operation="/", name=UNNAMED_VARIABLE)
         return variable
+
+    def __itruediv__(self, other: Union[Scalar, Series, "Variable"]) -> Series:
+        return self.__truediv__(other)
 
     def __floordiv__(self, other: Union[Scalar, Series, "Variable"]) -> Series:
         # variable = super().__floordiv__(other)
@@ -136,11 +152,17 @@ class Variable(pd.Series):
         variable.metadata = combine_variables_metadata(variables=[self, other], operation="//", name=UNNAMED_VARIABLE)
         return variable
 
+    def __ifloordiv__(self, other: Union[Scalar, Series, "Variable"]) -> Series:
+        return self.__floordiv__(other)
+
     def __mod__(self, other: Union[Scalar, Series, "Variable"]) -> Series:
         # variable = super().__mod__(other)
         variable = Variable(self.values % other, name=UNNAMED_VARIABLE)  # type: ignore
         variable.metadata = combine_variables_metadata(variables=[self, other], operation="%", name=UNNAMED_VARIABLE)
         return variable
+
+    def __imod__(self, other: Union[Scalar, Series, "Variable"]) -> Series:
+        return self.__mod__(other)
 
     def __pow__(self, other: Union[Scalar, Series, "Variable"]) -> Series:
         # For some reason, the following line modifies the metadata of the original variable.
@@ -150,23 +172,43 @@ class Variable(pd.Series):
         variable.metadata = combine_variables_metadata(variables=[self, other], operation="**", name=UNNAMED_VARIABLE)
         return variable
 
+    def __ipow__(self, other: Union[Scalar, Series, "Variable"]) -> Series:
+        return self.__pow__(other)
+
     def fillna(self, value=None, *args, **kwargs) -> Series:
         # variable = super().fillna(value)
         # NOTE: Argument "inplace" will modify the original variable's data, but not its metadata.
         #  But we should not use "inplace" anyway.
         if "inplace" in kwargs and kwargs["inplace"] is True:
-            log.warning("Avoid using fillna(inplace=True) may not handle metadata as expected.")
+            log.warning("Avoid using fillna(inplace=True), which may not handle metadata as expected.")
         variable = Variable(super().fillna(value, *args, **kwargs), name=UNNAMED_VARIABLE)  # type: ignore
         variable.metadata = combine_variables_metadata(
             variables=[self, value], operation="fillna", name=UNNAMED_VARIABLE
         )
         return variable
 
-    # TODO: Should we also include the "add", "sub", "mul", "truediv" methods here? For example
-    # def add(self, other: Union[Scalar, Series, "Variable"]) -> "Variable":
-    #     return self.__add__(other=other)
-    # These methods have some additional arguments, namely axis='columns', level=None, fill_value=None that would need
-    # to be implemented here.
+    def add(self, other: Union[Scalar, Series, "Variable"], *args, **kwargs) -> Series:
+        if args or kwargs:
+            raise NotImplementedError("This feature may exist in pandas, but not in owid.catalog.")
+        return self.__add__(other=other)
+
+    def sub(self, other: Union[Scalar, Series, "Variable"], *args, **kwargs) -> Series:
+        if args or kwargs:
+            raise NotImplementedError("This feature may exist in pandas, but not in owid.catalog.")
+        return self.__sub__(other=other)
+
+    def mul(self, other: Union[Scalar, Series, "Variable"], *args, **kwargs) -> Series:
+        if args or kwargs:
+            raise NotImplementedError("This feature may exist in pandas, but not in owid.catalog.")
+        return self.__mul__(other=other)
+
+    def truediv(self, other: Union[Scalar, Series, "Variable"], *args, **kwargs) -> Series:
+        if args or kwargs:
+            raise NotImplementedError("This feature may exist in pandas, but not in owid.catalog.")
+        return self.__truediv__(other=other)
+
+    def div(self, other: Union[Scalar, Series, "Variable"], *args, **kwargs) -> Series:
+        return self.truediv(other=other, *args, **kwargs)
 
 
 # dynamically add all metadata properties to the class
@@ -194,18 +236,18 @@ def _combine_variable_units_or_short_units(variables: List[Variable], operation,
     return unit_or_short_unit_combined
 
 
-def combine_variables_units(variables: List[Variable], operation: str) -> Optional[str]:
+def combine_variables_units(variables: List[Variable], operation: OPERATION) -> Optional[str]:
     return _combine_variable_units_or_short_units(variables=variables, operation=operation, unit_or_short_unit="unit")
 
 
-def combine_variables_short_units(variables: List[Variable], operation) -> Optional[str]:
+def combine_variables_short_units(variables: List[Variable], operation: OPERATION) -> Optional[str]:
     return _combine_variable_units_or_short_units(
         variables=variables, operation=operation, unit_or_short_unit="short_unit"
     )
 
 
 def _combine_variables_titles_and_descriptions(
-    variables: List[Variable], operation: str, title_or_description: str
+    variables: List[Variable], operation: OPERATION, title_or_description: str
 ) -> Optional[str]:
     # Keep the title only if all variables have exactly the same title.
     # Otherwise we assume that the variable has a different meaning, and its title should be manually handled.
@@ -218,13 +260,13 @@ def _combine_variables_titles_and_descriptions(
     return title_or_description_combined
 
 
-def combine_variables_titles(variables: List[Variable], operation: str) -> Optional[str]:
+def combine_variables_titles(variables: List[Variable], operation: OPERATION) -> Optional[str]:
     return _combine_variables_titles_and_descriptions(
         variables=variables, operation=operation, title_or_description="title"
     )
 
 
-def combine_variables_descriptions(variables: List[Variable], operation: str) -> Optional[str]:
+def combine_variables_descriptions(variables: List[Variable], operation: OPERATION) -> Optional[str]:
     return _combine_variables_titles_and_descriptions(
         variables=variables, operation=operation, title_or_description="description"
     )
@@ -258,8 +300,6 @@ def get_unique_licenses_from_variables(variables: List[Variable]) -> List[Licens
 
 def combine_variables_processing_logs(variables: List[Variable]):
     # Make a list with all entries in the processing log of all variables.
-    # TODO: Currently, the processing log is not catching the name of the new variable created, but the first variable
-    #  involved in the operation.
     processing_log = sum(
         [
             variable.metadata.processing_log if variable.metadata.processing_log is not None else []
@@ -267,13 +307,12 @@ def combine_variables_processing_logs(variables: List[Variable]):
         ],
         [],
     )
-    # TODO: For commutative operations ()
 
     return processing_log
 
 
 def combine_variables_metadata(
-    variables: List[Any], operation: str, name: Optional[str] = UNNAMED_VARIABLE
+    variables: List[Any], operation: OPERATION, name: Optional[str] = UNNAMED_VARIABLE
 ) -> VariableMeta:
     # Initialise an empty metadata.
     metadata = VariableMeta()
@@ -299,12 +338,30 @@ def combine_variables_metadata(
     return metadata
 
 
-def update_variable_name(variable, name):
-    # Replace unnamed variable by the new variable name.
-    # Say you have a table tb with variables tb["a"] and tb["b"]. If you create a new variable "c" as
-    # variable_c = tb["a"] + tb["b"]
-    # the new variable does not have a name ()
-    # WARNING: This
+def update_variable_name(variable: Variable, name: str) -> None:
+    """Update the name of an unnamed variable, as well as its processing log, to have a new name.
+
+    Say you have a table tb with columns "a" and "b".
+    If you create a new variable "c" as
+    > variable_c = tb["a"] + tb["b"]
+    the new variable will have UNNAMED_VARIABLE as name.
+    Also, in the processing log, the variable will be cited as UNNAMED_VARIABLE.
+    To change the variable name to something more meaningful (e.g. "c"), the current function can be used,
+    > update_variable_name(variable=variable_c, name="c")
+    This function will update the variable name (in place) and will replace all instances of UNNAMED_VARIABLE in the
+    processing log to the new name.
+
+    This function is already used when a variable is added to a table column, so that
+    > tb["c"] = tb["a"] + tb["b"]
+    will create a new variable with name "c" (which, in the processing log, will be referred to as "c").
+
+    Parameters
+    ----------
+    variable : Variable
+        Variable whose name is given by UNNAMED_VARIABLE.
+    name : str
+        New name to assign to the variable.
+    """
     if hasattr(variable.metadata, "processing_log") and variable.metadata.processing_log is not None:
         variable.metadata.processing_log = json.loads(
             json.dumps(variable.metadata.processing_log).replace("**TEMPORARY UNNAMED VARIABLE**", name)
