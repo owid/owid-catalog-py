@@ -296,9 +296,7 @@ def test_copy_metadata_from() -> None:
 def test_addition_without_metadata() -> None:
     t: Table = Table({"a": [1, 2], "b": [3, 4]})
     t["c"] = t["a"] + t["b"]
-    # TODO: Here, the expected processing log should be for variable "c", but currently this is not properly working.
-    # expected_metadata = VariableMeta(processing_log=[{"variable": "c", "parents": ["a", "b"], "operation": "+"}])
-    expected_metadata = VariableMeta(processing_log=[{"variable": "a", "parents": ["a", "b"], "operation": "+"}])
+    expected_metadata = VariableMeta(processing_log=[{"variable": "c", "parents": ["a", "b"], "operation": "+"}])
     assert t.c.metadata == expected_metadata
 
 
@@ -309,9 +307,7 @@ def test_addition_with_metadata() -> None:
 
     t["c"] = t["a"] + t["b"]
 
-    # TODO: Here, the expected processing log should be for variable "c", but currently this is not properly working.
-    # expected_metadata = VariableMeta(processing_log=[{"variable": "c", "parents": ["a", "b"], "operation": "+"}])
-    expected_metadata = VariableMeta(processing_log=[{"variable": "a", "parents": ["a", "b"], "operation": "+"}])
+    expected_metadata = VariableMeta(processing_log=[{"variable": "c", "parents": ["a", "b"], "operation": "+"}])
     assert t.c.metadata == expected_metadata
 
     t.c.metadata.title = "C"
