@@ -66,9 +66,6 @@ class Variable(pd.Series):
             # make sure there is always a placeholder metadata object
             if name not in self._fields:
                 self._fields[name] = VariableMeta()
-        # else:
-        #     # See comments above, where UNNAMED_VARIABLE is defined, explaining this.
-        #     name = UNNAMED_VARIABLE
 
         self._name = name
 
@@ -112,37 +109,37 @@ class Variable(pd.Series):
     def __add__(self, other: Union[Scalar, Series, "Variable"]) -> Series:
         # variable = super().__add__(other)
         variable = Variable(self.values + other, name=UNNAMED_VARIABLE)  # type: ignore
-        variable.metadata = combine_variables_metadata(variables=[self, other], operation="+", name=self.name)
+        variable.metadata = combine_variables_metadata(variables=[self, other], operation="+", name=UNNAMED_VARIABLE)
         return variable
 
     def __sub__(self, other: Union[Scalar, Series, "Variable"]) -> Series:
         # variable = super().__sub__(other)
         variable = Variable(self.values - other, name=UNNAMED_VARIABLE)  # type: ignore
-        variable.metadata = combine_variables_metadata(variables=[self, other], operation="-", name=self.name)
+        variable.metadata = combine_variables_metadata(variables=[self, other], operation="-", name=UNNAMED_VARIABLE)
         return variable
 
     def __mul__(self, other: Union[Scalar, Series, "Variable"]) -> Series:
         # variable = super().__mul__(other)
         variable = Variable(self.values * other, name=UNNAMED_VARIABLE)  # type: ignore
-        variable.metadata = combine_variables_metadata(variables=[self, other], operation="*", name=self.name)
+        variable.metadata = combine_variables_metadata(variables=[self, other], operation="*", name=UNNAMED_VARIABLE)
         return variable
 
     def __truediv__(self, other: Union[Scalar, Series, "Variable"]) -> Series:
         # variable = super().__truediv__(other)
         variable = Variable(self.values / other, name=UNNAMED_VARIABLE)  # type: ignore
-        variable.metadata = combine_variables_metadata(variables=[self, other], operation="/", name=self.name)
+        variable.metadata = combine_variables_metadata(variables=[self, other], operation="/", name=UNNAMED_VARIABLE)
         return variable
 
     def __floordiv__(self, other: Union[Scalar, Series, "Variable"]) -> Series:
         # variable = super().__floordiv__(other)
         variable = Variable(self.values // other, name=UNNAMED_VARIABLE)  # type: ignore
-        variable.metadata = combine_variables_metadata(variables=[self, other], operation="//", name=self.name)
+        variable.metadata = combine_variables_metadata(variables=[self, other], operation="//", name=UNNAMED_VARIABLE)
         return variable
 
     def __mod__(self, other: Union[Scalar, Series, "Variable"]) -> Series:
         # variable = super().__mod__(other)
         variable = Variable(self.values % other, name=UNNAMED_VARIABLE)  # type: ignore
-        variable.metadata = combine_variables_metadata(variables=[self, other], operation="%", name=self.name)
+        variable.metadata = combine_variables_metadata(variables=[self, other], operation="%", name=UNNAMED_VARIABLE)
         return variable
 
     def __pow__(self, other: Union[Scalar, Series, "Variable"]) -> Series:
@@ -150,7 +147,7 @@ class Variable(pd.Series):
         # variable = super().__pow__(other)
         # So, instead, we define a new variable.
         variable = Variable(self.values**other, name=UNNAMED_VARIABLE)  # type: ignore
-        variable.metadata = combine_variables_metadata(variables=[self, other], operation="**", name=self.name)
+        variable.metadata = combine_variables_metadata(variables=[self, other], operation="**", name=UNNAMED_VARIABLE)
         return variable
 
     def fillna(self, value=None, *args, **kwargs) -> Series:
@@ -160,7 +157,9 @@ class Variable(pd.Series):
         if "inplace" in kwargs and kwargs["inplace"] is True:
             log.warning("Avoid using fillna(inplace=True) may not handle metadata as expected.")
         variable = Variable(super().fillna(value, *args, **kwargs), name=UNNAMED_VARIABLE)  # type: ignore
-        variable.metadata = combine_variables_metadata(variables=[self, value], operation="fillna", name=self.name)
+        variable.metadata = combine_variables_metadata(
+            variables=[self, value], operation="fillna", name=UNNAMED_VARIABLE
+        )
         return variable
 
     # TODO: Should we also include the "add", "sub", "mul", "truediv" methods here? For example
@@ -211,7 +210,7 @@ def _combine_variables_titles_and_descriptions(
     # Keep the title only if all variables have exactly the same title.
     # Otherwise we assume that the variable has a different meaning, and its title should be manually handled.
     title_or_description_combined = None
-    if operation in ["+", "-"]:
+    if operation in ["+", "-", "fillna"]:
         titles_or_descriptions = pd.unique([getattr(variable.metadata, title_or_description) for variable in variables])
         if len(titles_or_descriptions) == 1:
             title_or_description_combined = titles_or_descriptions[0]
@@ -268,6 +267,7 @@ def combine_variables_processing_logs(variables: List[Variable]):
         ],
         [],
     )
+    # TODO: For commutative operations ()
 
     return processing_log
 
@@ -297,3 +297,16 @@ def combine_variables_metadata(
     metadata.processing_log.extend([{"variable": name, "parents": variables_and_scalars_names, "operation": operation}])
 
     return metadata
+
+
+def update_variable_name(variable, name):
+    # Replace unnamed variable by the new variable name.
+    # Say you have a table tb with variables tb["a"] and tb["b"]. If you create a new variable "c" as
+    # variable_c = tb["a"] + tb["b"]
+    # the new variable does not have a name ()
+    # WARNING: This
+    if hasattr(variable.metadata, "processing_log") and variable.metadata.processing_log is not None:
+        variable.metadata.processing_log = json.loads(
+            json.dumps(variable.metadata.processing_log).replace("**TEMPORARY UNNAMED VARIABLE**", name)
+        )
+    variable.name = name

@@ -345,6 +345,13 @@ class Table(pd.DataFrame):
                 # variable needs to be assigned name to make VariableMeta work
                 if not value.name:
                     value.name = key
+                if value.name == variables.UNNAMED_VARIABLE:
+                    # Update the variable name, if it had the unnamed variable tag.
+                    # Replace all instances of unnamed variables in the processing log by the actual name of the new
+                    # variable.
+                    # WARNING: This process assumes that all instances of unnamed variable tag correspond to the new
+                    #  variable.
+                    variables.update_variable_name(variable=value, name=key)
                 self._fields[key] = value.metadata
             else:
                 self._fields[key] = VariableMeta()
