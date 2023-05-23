@@ -20,7 +20,7 @@ SCHEMA = json.load(open(path.join(path.dirname(__file__), "schemas", "table.json
 METADATA_FIELDS = list(SCHEMA["properties"])
 
 # Defined operations.
-OPERATION = Literal["+", "-", "*", "/", "**", "//", "%", "fillna"]
+OPERATION = Literal["+", "-", "*", "/", "**", "//", "%", "fillna", "load", "create", "save"]
 
 
 # When creating a new variable, we need to pass a temporary name. For example, when doing tb["a"] + tb["b"]:

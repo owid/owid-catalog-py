@@ -103,18 +103,21 @@ class Table(pd.DataFrame):
         """
         Save this table in one of our SUPPORTED_FORMATS.
         """
+        # Add entry in the processing log about operation "save".
+        table = update_processing_logs_when_saving_table(table=self, path=path)
+
         if isinstance(path, Path):
             path = path.as_posix()
 
         if path.endswith(".csv"):
             # ignore repacking
-            return self.to_csv(path)
+            return table.to_csv(path)
 
         elif path.endswith(".feather"):
-            return self.to_feather(path, repack=repack)
+            return table.to_feather(path, repack=repack)
 
         elif path.endswith(".parquet"):
-            return self.to_parquet(path, repack=repack)
+            return table.to_parquet(path, repack=repack)
 
         else:
             raise ValueError(f"could not detect a suitable format to save to: {path}")
@@ -135,9 +138,8 @@ class Table(pd.DataFrame):
         else:
             raise ValueError(f"could not detect a suitable format to read from: {path}")
 
-        # # Add processing log to the metadata of each variable in the table.
-        # TODO: Unit tests fail when adding processing log to each variable.
-        # table = _add_processing_log_to_each_loaded_variable(table)
+        # Add processing log to the metadata of each variable in the table.
+        table = update_processing_logs_when_loading_or_creating_table(table=table)
 
         return table
 
@@ -565,24 +567,59 @@ def read_excel(*args, **kwargs) -> Table:
     return Table(pd.read_excel(*args, **kwargs))
 
 
-def _add_processing_log_to_each_loaded_variable(table):
+def update_processing_logs_when_loading_or_creating_table(table: Table) -> Table:
     # Add entry to processing log, specifying that each variable was loaded from this table.
-    # Generate a URI for the table.
-    table_uri = f"{table.metadata.dataset.uri}/{table.metadata.short_name}"
+
+    try:
+        # If the table comes from an ETL dataset, generate a URI for the table.
+        table_uri = f"{table.metadata.dataset.uri}/{table.metadata.short_name}"  # type: ignore
+        parents = [table_uri]
+        operation = "load"
+    except (AssertionError, AttributeError):
+        # The table doesn't have an uri, which means it was probably created from scratch.
+        parents = []
+        operation = "create"
+
+    table = _add_processing_log_entry_to_each_variable(table=table, parents=parents, operation=operation)
+
+    return table
+
+
+def update_processing_logs_when_saving_table(table: Table, path: Union[str, Path]) -> Table:
+    # Infer the ETL uri from the path where the table will be saved.
+    # Note: If the path does not fit the expected format, the result will be an arbitrary path, but it will not raise an
+    # error, as long as path is a Path.
+    path = Path(path)
+    uri = "/".join(path.absolute().parts[-5:-1] + tuple([path.stem]))
+    table = _add_processing_log_entry_to_each_variable(table=table, parents=[uri], operation="save")
+
+    return table
+
+
+def _add_processing_log_entry_to_each_variable(
+    table: Table, parents: List[Any], operation: variables.OPERATION
+) -> Table:
     # Get the names of the columns currently used for the index of the table (if any).
     index_columns = table.metadata.primary_key
 
     # If the table has an index, reset it so we have access to all variables in the table.
     if len(index_columns) > 0:
-        table = table.reset_index(drop=False)
+        table = table.reset_index(drop=False)  # type: ignore
     for column in table.columns:
-        # If no processing log is found for a variable, start a new one.
+        # New entry to add to the processing log.
+        log_new_entry = {"variable": column, "parents": parents, "operation": operation}
+
         if table[column].metadata.processing_log is None:
+            # If no processing log is found for a variable, start a new one.
             table[column].metadata.processing_log = []
-        # Append a new entry to the processing log.
-        table[column].metadata.processing_log.append(
-            [{"variable": column, "parents": [table_uri], "operation": "load"}]
-        )
+        elif log_new_entry in table[column].metadata.processing_log:
+            # If the processing log is not empty but the last entry is identical to the one we want to insert, skip, to
+            # avoid storing the same entry multiple times.
+            # This happens for example when saving tables, given that tables are stored in different formats.
+            pass
+        else:
+            # Append a new entry to the processing log.
+            table[column].metadata.processing_log += [log_new_entry]
     if len(index_columns) > 0:
         table = table.set_index(index_columns)
 
