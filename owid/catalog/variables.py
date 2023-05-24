@@ -20,7 +20,7 @@ SCHEMA = json.load(open(path.join(path.dirname(__file__), "schemas", "table.json
 METADATA_FIELDS = list(SCHEMA["properties"])
 
 # Defined operations.
-OPERATION = Literal["+", "-", "*", "/", "**", "//", "%", "fillna", "load", "create", "save", "merge", "rename"]
+OPERATION = Literal["+", "-", "*", "/", "**", "//", "%", "fillna", "load", "create", "save", "merge", "rename", "melt"]
 
 # Switch to write to processing log if True.
 # TODO: Figure out a better way to have this switch.
@@ -228,7 +228,7 @@ def _combine_variable_units_or_short_units(variables: List[Variable], operation,
     units_or_short_units = pd.unique([getattr(variable.metadata, unit_or_short_unit) for variable in variables])
     # Initialise the unit (or short unit) of the output variable.
     unit_or_short_unit_combined = None
-    if operation in ["+", "-"]:
+    if operation in ["+", "-", "melt"]:
         # If units (or short units) do not coincide among all variables, raise a warning and assign None.
         if len(units_or_short_units) != 1:
             log.warning(f"Different values of '{unit_or_short_unit}' detected among variables: {units_or_short_units}")
@@ -256,7 +256,7 @@ def _combine_variables_titles_and_descriptions(
     # Keep the title only if all variables have exactly the same title.
     # Otherwise we assume that the variable has a different meaning, and its title should be manually handled.
     title_or_description_combined = None
-    if operation in ["+", "-", "fillna", "merge"]:
+    if operation in ["+", "-", "fillna", "merge", "melt"]:
         titles_or_descriptions = pd.unique([getattr(variable.metadata, title_or_description) for variable in variables])
         if len(titles_or_descriptions) == 1:
             title_or_description_combined = titles_or_descriptions[0]

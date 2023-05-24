@@ -8,7 +8,7 @@ import json
 from collections import defaultdict
 from os.path import dirname, join, splitext
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, Union, cast, overload
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast, overload
 
 import pandas as pd
 import pyarrow
@@ -542,8 +542,24 @@ class Table(pd.DataFrame):
     def merge(self, right, *args, **kwargs) -> "Table":
         return merge(left=self, right=right, *args, **kwargs)
 
-    def melt(self, *args, **kwargs) -> "Table":
-        return melt(frame=self, *args, **kwargs)
+    def melt(
+        self,
+        id_vars: Optional[Union[Tuple[str], List[str], str]] = None,
+        value_vars: Optional[Union[Tuple[str], List[str], str]] = None,
+        var_name: str = "variable",
+        value_name: str = "value",
+        *args,
+        **kwargs,
+    ) -> "Table":
+        return melt(
+            frame=self,
+            id_vars=id_vars,
+            value_vars=value_vars,
+            var_name=var_name,
+            value_name=value_name,
+            *args,
+            **kwargs,
+        )
 
     def pivot(self, *args, **kwargs) -> "Table":
         return pivot(data=self, *args, **kwargs)
@@ -574,8 +590,65 @@ def concat(*args, **kwargs) -> Table:
     return Table(pd.concat(*args, **kwargs))
 
 
-def melt(*args, **kwargs) -> Table:
-    return Table(pd.melt(*args, **kwargs))
+def melt(
+    frame: Table,
+    id_vars: Optional[Union[Tuple[str], List[str], str]] = None,
+    value_vars: Optional[Union[Tuple[str], List[str], str]] = None,
+    var_name: str = "variable",
+    value_name: str = "value",
+    *args,
+    **kwargs,
+) -> Table:
+    # TODO: We may need to implement some mor logic here to handle multi-index dataframes.
+    # Get the new melt table.
+    table = Table(
+        pd.melt(
+            frame=frame,
+            id_vars=id_vars,
+            value_vars=value_vars,
+            var_name=var_name,
+            value_name=value_name,
+            *args,
+            **kwargs,
+        )
+    )
+
+    # Copy the original table metadata to the new table.
+    table.metadata = copy.deepcopy(frame.metadata)
+
+    # Get the list of column names used as id variables.
+    if id_vars is None:
+        id_vars_list = []
+    elif isinstance(id_vars, str):
+        id_vars_list: List[str] = [id_vars]
+    else:
+        id_vars_list = id_vars  # type: ignore
+
+    # Get the list of column names used as id and value variables.
+    if value_vars is None:
+        value_vars_list = [column for column in frame.columns if column not in id_vars_list]
+    elif isinstance(value_vars, str):
+        value_vars_list = [value_vars]
+    else:
+        value_vars_list = value_vars  # type: ignore
+
+    # Combine metadata of value variables and assign the combination to the new "value" column.
+    table[value_name].metadata = variables.combine_variables_metadata(
+        variables=[frame[var] for var in value_vars_list], operation="melt", name=value_name
+    )
+
+    # Assign that combined metadata also to the new "variable" column.
+    table[var_name].metadata = variables.combine_variables_metadata(
+        variables=[frame[var] for var in value_vars_list], operation="melt", name=var_name
+    )
+
+    for variable in id_vars_list:
+        # Combine metadata of id variables and assign the combination to the new "id" variable.
+        table[variable].metadata = variables.combine_variables_metadata(
+            variables=[frame[var] for var in id_vars_list], operation="melt", name=variable
+        )
+
+    return table
 
 
 def pivot(*args, **kwargs) -> Table:
