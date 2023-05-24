@@ -190,22 +190,21 @@ def test_dataset_hash_changes_with_data_changes():
         assert c1 != c2
 
 
-# TODO: Is there any way to adapt this test to work again with processing_log?
-# def test_dataset_hash_invariant_to_copying():
-#     # make a mock dataset
-#     with mock_dataset() as d1:
+def test_dataset_hash_invariant_to_copying():
+    # make a mock dataset
+    with mock_dataset() as d1:
 
-#         # make a copy of it
-#         with temp_dataset_dir() as dirname:
-#             d2 = Dataset.create_empty(dirname)
-#             d2.metadata = d1.metadata
-#             d2.save()
+        # make a copy of it
+        with temp_dataset_dir() as dirname:
+            d2 = Dataset.create_empty(dirname)
+            d2.metadata = d1.metadata
+            d2.save()
 
-#             for t in d1:
-#                 d2.add(t)
+            for t in d1:
+                d2.add(t)
 
-#             # the copy should have the same checksum
-#             assert d2.checksum() == d1.checksum()
+            # the copy should have the same checksum
+            assert d2.checksum() == d1.checksum()
 
 
 def test_snake_case_dataset():
