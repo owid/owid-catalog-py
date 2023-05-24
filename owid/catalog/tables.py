@@ -585,9 +585,32 @@ def merge(left, right, *args, **kwargs) -> Table:
     return tb
 
 
-# TODO: Handle metadata and processing info for each of the following functions.
-def concat(*args, **kwargs) -> Table:
-    return Table(pd.concat(*args, **kwargs))
+def concat(objs: List[Table], *, axis: int = 0, join: str = "outer", ignore_index: bool = False, **kwargs) -> Table:
+    # TODO: Add more logic to this function to handle indexes and possibly other arguments.
+    table = Table(pd.concat(objs=objs, axis=axis, join=join, ignore_index=ignore_index, **kwargs))  # type: ignore
+
+    if axis == 1:
+        # Assign to each variable its original metadata.
+        original_variables = [table_i[column] for table_i in objs for column in table_i]
+        for i, column in enumerate(table.columns):
+            assert column == original_variables[i].name
+            table[column].metadata = original_variables[i].metadata
+            table[column].metadata.processing_log = variables.add_entry_to_processing_log(
+                processing_log=table[column].metadata.processing_log,
+                variable=column,
+                parents=[column],
+                operation="concat",
+            )
+    elif axis == 0:
+        # Add to each column either the metadata of the original variable (if the variable appeared only in one of the input
+        # tables) or the combination of the metadata from different tables (if the variable appeared in various tables).
+        for column in table.columns:
+            variables_to_combine = [table_i[column] for table_i in objs if column in table_i.columns]
+            table[column].metadata = variables.combine_variables_metadata(
+                variables=variables_to_combine, operation="concat", name=column
+            )
+
+    return table
 
 
 def melt(
@@ -651,6 +674,7 @@ def melt(
     return table
 
 
+# TODO: Handle metadata and processing info for each of the following functions.
 def pivot(*args, **kwargs) -> Table:
     return Table(pd.pivot(*args, **kwargs))
 
