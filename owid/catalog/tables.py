@@ -141,8 +141,12 @@ class Table(pd.DataFrame):
         else:
             raise ValueError(f"could not detect a suitable format to read from: {path}")
 
+        # If each variable does not have sources, load them from the dataset.
+        table = assign_dataset_sources_and_licenses_to_each_variable(table=table)
+
         if UPDATE_PROCESSING_LOG:
             # Add processing log to the metadata of each variable in the table.
+            # TODO: For some reason, the snapshot loading entry gets repeated.
             table = update_processing_logs_when_loading_or_creating_table(table=table)
 
         return table
@@ -388,12 +392,13 @@ class Table(pd.DataFrame):
 
             if UPDATE_PROCESSING_LOG:
                 # Update processing log.
-                fields[new_col].processing_log = variables.add_entry_to_processing_log(
-                    processing_log=fields[new_col].processing_log,
-                    variable=new_col,
-                    parents=[old_col],
-                    operation="rename",
-                )
+                if old_col != new_col:
+                    fields[new_col].processing_log = variables.add_entry_to_processing_log(
+                        processing_log=fields[new_col].processing_log,
+                        variable=new_col,
+                        parents=[old_col],
+                        operation="rename",
+                    )
 
         new_table._fields = defaultdict(VariableMeta, fields)
 
@@ -662,6 +667,40 @@ def _add_processing_log_entry_to_each_variable(
             table[column].metadata.processing_log = variables.add_entry_to_processing_log(
                 processing_log=table[column].metadata.processing_log, **log_new_entry
             )
+    if len(index_columns) > 0:
+        table = table.set_index(index_columns)
+
+    return table
+
+
+def assign_dataset_sources_and_licenses_to_each_variable(table: Table) -> Table:
+    # Get the names of the columns currently used for the index of the table (if any).
+    index_columns = table.metadata.primary_key
+
+    # Get sources and licenses from the table dataset.
+    sources = []
+    licenses = []
+    if hasattr(table.metadata, "dataset") and hasattr(table.metadata.dataset, "sources"):
+        sources = table.metadata.dataset.sources  # type: ignore
+    if hasattr(table.metadata, "dataset") and hasattr(table.metadata.dataset, "sources"):
+        licenses = table.metadata.dataset.licenses  # type: ignore
+
+    if len(sources) == len(licenses) == 0:
+        # There are no default sources/licenses to assign to each variable.
+        return table
+
+    # If the table has an index, reset it so we have access to all variables in the table.
+    if len(index_columns) > 0:
+        table = table.reset_index(drop=False)  # type: ignore
+
+    # If a variable does not have sources/licenses defined, assign the ones from the dataset.
+    for column in table.columns:
+        if len(table[column].metadata.sources) == 0:
+            table[column].metadata.sources = sources
+        if len(table[column].metadata.licenses) == 0:
+            table[column].metadata.licenses = licenses
+
+    # Set the original index to the table.
     if len(index_columns) > 0:
         table = table.set_index(index_columns)
 
