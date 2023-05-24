@@ -17,11 +17,12 @@ import requests
 import structlog
 import yaml
 from owid.repack import repack_frame
+from pandas._typing import FilePath, ReadCsvBuffer  # type: ignore
 from pandas.util._decorators import rewrite_axis_style_signature
-from pandas._typing import ReadCsvBuffer, FilePath
 
 from . import variables
 from .meta import Source, TableMeta, VariableMeta
+from .variables import UPDATE_PROCESSING_LOG
 
 log = structlog.get_logger()
 
@@ -104,21 +105,22 @@ class Table(pd.DataFrame):
         """
         Save this table in one of our SUPPORTED_FORMATS.
         """
-        # Add entry in the processing log about operation "save".
-        table = update_processing_logs_when_saving_table(table=self, path=path)
+        if UPDATE_PROCESSING_LOG:
+            # Add entry in the processing log about operation "save".
+            self = update_processing_logs_when_saving_table(table=self, path=path)
 
         if isinstance(path, Path):
             path = path.as_posix()
 
         if path.endswith(".csv"):
             # ignore repacking
-            return table.to_csv(path)
+            return self.to_csv(path)
 
         elif path.endswith(".feather"):
-            return table.to_feather(path, repack=repack)
+            return self.to_feather(path, repack=repack)
 
         elif path.endswith(".parquet"):
-            return table.to_parquet(path, repack=repack)
+            return self.to_parquet(path, repack=repack)
 
         else:
             raise ValueError(f"could not detect a suitable format to save to: {path}")
@@ -139,8 +141,9 @@ class Table(pd.DataFrame):
         else:
             raise ValueError(f"could not detect a suitable format to read from: {path}")
 
-        # Add processing log to the metadata of each variable in the table.
-        table = update_processing_logs_when_loading_or_creating_table(table=table)
+        if UPDATE_PROCESSING_LOG:
+            # Add processing log to the metadata of each variable in the table.
+            table = update_processing_logs_when_loading_or_creating_table(table=table)
 
         return table
 
@@ -376,12 +379,21 @@ class Table(pd.DataFrame):
             new_table = self
 
         # construct new _fields attribute
-        fields = {
-            new_col: self._fields[old_col] if inplace
-            # avoid deepcopy if inplace to make it faster
-            else copy.deepcopy(self._fields[old_col])
-            for old_col, new_col in zip(old_cols, new_table.all_columns)
-        }
+        fields = {}
+        for old_col, new_col in zip(old_cols, new_table.all_columns):
+            if inplace:
+                fields[new_col] = self._fields[old_col]
+            else:
+                fields[new_col] = copy.deepcopy(self._fields[old_col])
+
+            if UPDATE_PROCESSING_LOG:
+                # Update processing log.
+                fields[new_col].processing_log = variables.add_entry_to_processing_log(
+                    processing_log=fields[new_col].processing_log,
+                    variable=new_col,
+                    parents=[old_col],
+                    operation="rename",
+                )
 
         new_table._fields = defaultdict(VariableMeta, fields)
 
@@ -533,6 +545,7 @@ class Table(pd.DataFrame):
 
     def underscore(self) -> "Table":
         from .utils import underscore_table
+
         return underscore_table(self, inplace=False)
 
 
@@ -568,20 +581,27 @@ def _add_table_and_variables_metadata_to_table(table: Table, metadata: Optional[
     if metadata is not None:
         table.metadata = metadata
         for column in table.columns:
-            table[column].metadata.sources = metadata.dataset.sources
-            table[column].metadata.licenses = metadata.dataset.licenses
-    table = update_processing_logs_when_loading_or_creating_table(table=table)
+            table[column].metadata.sources = metadata.dataset.sources  # type: ignore
+            table[column].metadata.licenses = metadata.dataset.licenses  # type: ignore
+    if UPDATE_PROCESSING_LOG:
+        table = update_processing_logs_when_loading_or_creating_table(table=table)
 
     return table
 
 
-def read_csv(filepath_or_buffer: Union[FilePath, ReadCsvBuffer[bytes], ReadCsvBuffer[str]], metadata: Optional[TableMeta] = None, underscore: Optional[bool] = False, *args, **kwargs) -> Table:
+def read_csv(
+    filepath_or_buffer: Union[FilePath, ReadCsvBuffer[bytes], ReadCsvBuffer[str]],
+    metadata: Optional[TableMeta] = None,
+    underscore: bool = False,
+    *args,
+    **kwargs,
+) -> Table:
     table = Table(pd.read_csv(filepath_or_buffer=filepath_or_buffer, *args, **kwargs), underscore=underscore)
     table = _add_table_and_variables_metadata_to_table(table=table, metadata=metadata)
     return table
 
 
-def read_excel(*args, metadata: Optional[TableMeta] = None, underscore: Optional[bool] = False, **kwargs) -> Table:
+def read_excel(*args, metadata: Optional[TableMeta] = None, underscore: bool = False, **kwargs) -> Table:
     table = Table(pd.read_excel(*args, **kwargs), underscore=underscore)
     table = _add_table_and_variables_metadata_to_table(table=table, metadata=metadata)
     return table
@@ -631,7 +651,7 @@ def _add_processing_log_entry_to_each_variable(
         if table[column].metadata.processing_log is None:
             # If no processing log is found for a variable, start a new one.
             table[column].metadata.processing_log = []
-        
+
         if log_new_entry in table[column].metadata.processing_log:
             # If the processing log is not empty but the last entry is identical to the one we want to insert, skip, to
             # avoid storing the same entry multiple times.
@@ -639,7 +659,9 @@ def _add_processing_log_entry_to_each_variable(
             pass
         else:
             # Append a new entry to the processing log.
-            table[column].metadata.processing_log += [log_new_entry]
+            table[column].metadata.processing_log = variables.add_entry_to_processing_log(
+                processing_log=table[column].metadata.processing_log, **log_new_entry
+            )
     if len(index_columns) > 0:
         table = table.set_index(index_columns)
 

@@ -20,7 +20,11 @@ SCHEMA = json.load(open(path.join(path.dirname(__file__), "schemas", "table.json
 METADATA_FIELDS = list(SCHEMA["properties"])
 
 # Defined operations.
-OPERATION = Literal["+", "-", "*", "/", "**", "//", "%", "fillna", "load", "create", "save"]
+OPERATION = Literal["+", "-", "*", "/", "**", "//", "%", "fillna", "load", "create", "save", "merge", "rename"]
+
+# Switch to write to processing log if True.
+# TODO: Figure out a better way to have this switch.
+UPDATE_PROCESSING_LOG = False
 
 
 # When creating a new variable, we need to pass a temporary name. For example, when doing tb["a"] + tb["b"]:
@@ -298,6 +302,27 @@ def get_unique_licenses_from_variables(variables: List[Variable]) -> List[Licens
     return unique_licenses
 
 
+def add_entry_to_processing_log(
+    processing_log: List[Any],
+    variable: str,
+    parents: List[Any],
+    operation: str,
+    comment: Optional[str] = None,
+) -> List[Any]:
+    # Consider using a deepcopy if any of the operations in this function alter mutable objects in processing_log.
+    processing_log_updated = processing_log.copy()
+
+    # Define new log entry.
+    log_new_entry = {"variable": variable, "parents": parents, "operation": operation}
+    if comment is not None:
+        log_new_entry["comment"] = comment
+
+    # Add new entry to log.
+    processing_log_updated += [log_new_entry]
+
+    return processing_log_updated
+
+
 def combine_variables_processing_logs(variables: List[Variable]):
     # Make a list with all entries in the processing log of all variables.
     processing_log = sum(
@@ -312,7 +337,7 @@ def combine_variables_processing_logs(variables: List[Variable]):
 
 
 def combine_variables_metadata(
-    variables: List[Any], operation: OPERATION, name: Optional[str] = UNNAMED_VARIABLE
+    variables: List[Any], operation: OPERATION, name: str = UNNAMED_VARIABLE
 ) -> VariableMeta:
     # Initialise an empty metadata.
     metadata = VariableMeta()
@@ -329,11 +354,17 @@ def combine_variables_metadata(
     metadata.licenses = get_unique_licenses_from_variables(variables=variables_only)
     metadata.processing_log = combine_variables_processing_logs(variables=variables_only)
 
-    # List names of variables and scalars (or other objects passed in variables).
-    variables_and_scalars_names = [
-        variable.name if hasattr(variable, "name") else str(variable) for variable in variables
-    ]
-    metadata.processing_log.extend([{"variable": name, "parents": variables_and_scalars_names, "operation": operation}])
+    if UPDATE_PROCESSING_LOG:
+        # List names of variables and scalars (or other objects passed in variables).
+        variables_and_scalars_names = [
+            variable.name if hasattr(variable, "name") else str(variable) for variable in variables
+        ]
+        metadata.processing_log = add_entry_to_processing_log(
+            processing_log=metadata.processing_log,
+            variable=name,
+            parents=variables_and_scalars_names,
+            operation=operation,
+        )
 
     return metadata
 
