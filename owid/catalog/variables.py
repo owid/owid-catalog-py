@@ -252,7 +252,7 @@ def _combine_variables_titles_and_descriptions(
     # Keep the title only if all variables have exactly the same title.
     # Otherwise we assume that the variable has a different meaning, and its title should be manually handled.
     title_or_description_combined = None
-    if operation in ["+", "-", "fillna"]:
+    if operation in ["+", "-", "fillna", "merge"]:
         titles_or_descriptions = pd.unique([getattr(variable.metadata, title_or_description) for variable in variables])
         if len(titles_or_descriptions) == 1:
             title_or_description_combined = titles_or_descriptions[0]

@@ -18,6 +18,7 @@ import structlog
 import yaml
 from owid.repack import repack_frame
 from pandas.util._decorators import rewrite_axis_style_signature
+from pandas._typing import ReadCsvBuffer, FilePath
 
 from . import variables
 from .meta import Source, TableMeta, VariableMeta
@@ -530,6 +531,10 @@ class Table(pd.DataFrame):
     def pivot(self, *args, **kwargs) -> "Table":
         return pivot(data=self, *args, **kwargs)
 
+    def underscore(self) -> "Table":
+        from .utils import underscore_table
+        return underscore_table(self, inplace=False)
+
 
 def merge(left, right, *args, **kwargs) -> Table:
     # TODO: This function needs further logic. For example, to handle "on"/"left_on"/"right_on" columns,
@@ -539,9 +544,9 @@ def merge(left, right, *args, **kwargs) -> Table:
     columns_that_were_in_right = set(tb.columns) & set(right.columns)
 
     for column in columns_that_were_in_left:
-        tb[column].metadata = left[column].metadata
+        tb[column].metadata = variables.combine_variables_metadata([left[column]], operation="merge")
     for column in columns_that_were_in_right:
-        tb[column].metadata = right[column].metadata
+        tb[column].metadata = variables.combine_variables_metadata([right[column]], operation="merge")
 
     return tb
 
@@ -559,17 +564,31 @@ def pivot(*args, **kwargs) -> Table:
     return Table(pd.pivot(*args, **kwargs))
 
 
-def read_csv(*args, **kwargs) -> Table:
-    return Table(pd.read_csv(*args, **kwargs))
+def _add_table_and_variables_metadata_to_table(table: Table, metadata: Optional[TableMeta]) -> Table:
+    if metadata is not None:
+        table.metadata = metadata
+        for column in table.columns:
+            table[column].metadata.sources = metadata.dataset.sources
+            table[column].metadata.licenses = metadata.dataset.licenses
+    table = update_processing_logs_when_loading_or_creating_table(table=table)
+
+    return table
 
 
-def read_excel(*args, **kwargs) -> Table:
-    return Table(pd.read_excel(*args, **kwargs))
+def read_csv(filepath_or_buffer: Union[FilePath, ReadCsvBuffer[bytes], ReadCsvBuffer[str]], metadata: Optional[TableMeta] = None, underscore: Optional[bool] = False, *args, **kwargs) -> Table:
+    table = Table(pd.read_csv(filepath_or_buffer=filepath_or_buffer, *args, **kwargs), underscore=underscore)
+    table = _add_table_and_variables_metadata_to_table(table=table, metadata=metadata)
+    return table
+
+
+def read_excel(*args, metadata: Optional[TableMeta] = None, underscore: Optional[bool] = False, **kwargs) -> Table:
+    table = Table(pd.read_excel(*args, **kwargs), underscore=underscore)
+    table = _add_table_and_variables_metadata_to_table(table=table, metadata=metadata)
+    return table
 
 
 def update_processing_logs_when_loading_or_creating_table(table: Table) -> Table:
     # Add entry to processing log, specifying that each variable was loaded from this table.
-
     try:
         # If the table comes from an ETL dataset, generate a URI for the table.
         table_uri = f"{table.metadata.dataset.uri}/{table.metadata.short_name}"  # type: ignore
@@ -612,7 +631,8 @@ def _add_processing_log_entry_to_each_variable(
         if table[column].metadata.processing_log is None:
             # If no processing log is found for a variable, start a new one.
             table[column].metadata.processing_log = []
-        elif log_new_entry in table[column].metadata.processing_log:
+        
+        if log_new_entry in table[column].metadata.processing_log:
             # If the processing log is not empty but the last entry is identical to the one we want to insert, skip, to
             # avoid storing the same entry multiple times.
             # This happens for example when saving tables, given that tables are stored in different formats.
