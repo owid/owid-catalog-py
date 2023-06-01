@@ -104,7 +104,7 @@ class Dataset:
         for col, dtype in table.dtypes.items():
             if dtype in NULLABLE_DTYPES:
                 # pandas nullable types like Float64 have their own pd.NA instead of np.nan
-                # make sure we don't using the wrong nan, otherwise dropna and other methods won't work
+                # make sure we don't use wrong nan, otherwise dropna and other methods won't work
                 assert (
                     np.isnan(table[col]).sum() == 0
                 ), f"Column `{col}` is using np.nan, but it should be using pd.NA because it has type {table[col].dtype}"
