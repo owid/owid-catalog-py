@@ -13,6 +13,7 @@ from os.path import join
 from pathlib import Path
 from typing import Any, Iterator, List, Literal, Optional, Union
 
+import numpy as np
 import pandas as pd
 import yaml
 
@@ -39,6 +40,9 @@ assert SUPPORTED_FORMATS[0] == PREFERRED_FORMAT
 
 # available channels in the catalog
 CHANNEL = Literal["garden", "meadow", "grapher", "backport", "open_numbers", "examples", "explorers"]
+
+# all pandas nullable dtypes
+NULLABLE_DTYPES = [f"{sign}{typ}{size}" for typ in ("Int", "Float") for sign in ("", "U") for size in (8, 16, 32, 64)]
 
 
 @dataclass
@@ -95,6 +99,15 @@ class Dataset:
         utils.validate_underscore(table.metadata.short_name, "Table's short_name")
         for col in list(table.columns) + list(table.index.names):
             utils.validate_underscore(col, "Variable's name")
+
+        # check Float64 and Int64 columns for np.nan
+        for col, dtype in table.dtypes.items():
+            if dtype in NULLABLE_DTYPES:
+                # pandas nullable types like Float64 have their own pd.NA instead of np.nan
+                # make sure we don't use wrong nan, otherwise dropna and other methods won't work
+                assert (
+                    np.isnan(table[col]).sum() == 0
+                ), f"Column `{col}` is using np.nan, but it should be using pd.NA because it has type {table[col].dtype}"
 
         # copy dataset metadata to the table
         table.metadata.dataset = self.metadata
