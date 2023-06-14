@@ -413,7 +413,9 @@ class Table(pd.DataFrame):
         combined: List[str] = filter(None, list(self.index.names) + list(self.columns))  # type: ignore
         return combined
 
-    def update_metadata_from_yaml(self, path: Union[Path, str], table_name: str) -> None:
+    def update_metadata_from_yaml(
+        self, path: Union[Path, str], table_name: str, extra_variables: Literal["raise", "ignore"] = "raise"
+    ) -> None:
         """Update metadata of table and variables from a YAML file.
         :param path: Path to YAML file.
         :param table_name: Name of table, also updates this in the metadata.
@@ -425,14 +427,23 @@ class Table(pd.DataFrame):
 
         t_annot = annot["tables"][table_name]
 
+        # validation
+        if extra_variables == "raise":
+            yaml_variable_names = t_annot.get("variables", {}).keys()
+            table_variable_names = self.columns
+            extra_variable_names = yaml_variable_names - table_variable_names
+            if extra_variable_names:
+                raise ValueError(f"Table {table_name} has extra variables: {extra_variable_names}")
+
         # update variables
         for v_short_name, v_annot in (t_annot.get("variables", {}) or {}).items():
-            for k, v in v_annot.items():
-                # create an object out of sources
-                if k == "sources":
-                    self[v_short_name].metadata.sources = [Source(**source) for source in v]
-                else:
-                    setattr(self[v_short_name].metadata, k, v)
+            if v_short_name in self.columns:
+                for k, v in v_annot.items():
+                    # create an object out of sources
+                    if k == "sources":
+                        self[v_short_name].metadata.sources = [Source(**source) for source in v]
+                    else:
+                        setattr(self[v_short_name].metadata, k, v)
 
         # update table attributes
         for k, v in t_annot.items():
@@ -538,6 +549,19 @@ class Table(pd.DataFrame):
             # preserve metadata in _fields, calling reset_index() on a table drops it
             t._fields = self._fields
             return t  # type: ignore
+    
+    def join(self, other: Union[pd.DataFrame, "Table"], *args, **kwargs) -> "Table":
+        """Fix type signature of join."""
+        t = super().join(other, *args, **kwargs)
+
+        t.copy_metadata_from(self, errors="ignore")
+
+        # copy variables metadata from other table
+        if isinstance(other, Table):
+            for k, v in other._fields.items():
+                t._fields[k] = dataclasses.replace(v)
+                t._fields[k].sources = [dataclasses.replace(s) for s in v.sources]
+        return t  # type: ignore
 
     def merge(self, right, *args, **kwargs) -> "Table":
         return merge(left=self, right=right, *args, **kwargs)
